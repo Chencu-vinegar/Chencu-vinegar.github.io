@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "个人主页",
+    "createdAt": 1788428882479,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "D:\\个人主页"
+  ],
+  "reload": null
+}

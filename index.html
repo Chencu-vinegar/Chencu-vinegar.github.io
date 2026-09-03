@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的个人主页 · 占位演示</title>
+  <meta name="description" content="我的个人主页 —— 展示我是谁、我做过什么、如何联系我。（占位内容演示版）" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <script src="scripts/main.js" defer></script>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="site-header" id="top">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="返回顶部">
+        <span class="brand-mark">P</span>
+        <span class="brand-name">个人主页</span>
+      </a>
+      <nav class="site-nav" id="siteNav" aria-label="页面导航">
+        <a href="#about">关于</a>
+        <a href="#experience">经历</a>
+        <a href="#works">作品</a>
+        <a href="#avatar">分身</a>
+        <a href="#contact">联系</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色/浅色主题">◐</button>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="打开菜单" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero 首屏 -->
+    <section class="hero" id="hero">
+      <div class="container hero-inner">
+        <div class="avatar-wrap">
+          <!-- 占位头像：移除图片后用 CSS 渐变占位，替换时换成真实头像图 -->
+          <div class="avatar" role="img" aria-label="头像占位"></div>
+        </div>
+        <h1 class="hero-title">你好，我是<span class="accent">张小明</span></h1>
+        <p class="hero-slogan">全栈开发者 · 热爱开源 · 专注产品体验</p>
+        <p class="hero-tags">
+          <span class="tag">TypeScript</span>
+          <span class="tag">React</span>
+          <span class="tag">Node.js</span>
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#works">查看作品</a>
+          <a class="btn btn-ghost" href="#contact">联系我</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 关于我 -->
+    <section class="section" id="about">
+      <div class="container">
+        <h2 class="section-title">关于我</h2>
+        <p class="section-intro">一段简短、真实、有温度的自我介绍，让访客快速认识你。</p>
+
+        <div class="about-grid">
+          <div class="about-text">
+            <p>你好！我是张小明，一名专注于 Web 全栈开发的工程师。喜欢把复杂的问题做简单，把代码写得干净、可维护。</p>
+            <p>平时关注前端工程化、用户体验与开源社区，也在持续输出技术内容。</p>
+          </div>
+          <div class="about-stats">
+            <div class="stat"><strong>5</strong><span>年经验</span></div>
+            <div class="stat"><strong>20+</strong><span>项目</span></div>
+            <div class="stat"><strong>1w+</strong><span>用户</span></div>
+          </div>
+        </div>
+
+        <h3 class="subheading">技能</h3>
+        <div class="skill-list">
+          <span class="tag">TypeScript</span>
+          <span class="tag">React</span>
+          <span class="tag">Vue</span>
+          <span class="tag">Node.js</span>
+          <span class="tag">UI 设计</span>
+          <span class="tag">写作</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 经历时间线 -->
+    <section class="section section-alt" id="experience">
+      <div class="container">
+        <h2 class="section-title">经历</h2>
+        <p class="section-intro">按时间倒序回顾你的教育、职业与项目经历。</p>
+
+        <ol class="timeline">
+          <li class="timeline-item">
+            <time>2023 — 至今</time>
+            <h3>高级前端工程师 · 某科技公司</h3>
+            <p>负责核心产品前端架构与工程化建设，主导多个 B 端项目落地。</p>
+          </li>
+          <li class="timeline-item">
+            <time>2020 — 2023</time>
+            <h3>前端工程师 · 某互联网公司</h3>
+            <p>参与电商 C 端与中后台系统开发，关注性能与体验优化。</p>
+          </li>
+          <li class="timeline-item">
+            <time>2016 — 2020</time>
+            <h3>计算机科学与技术 · 某大学</h3>
+            <p>本科阶段，专注 Web 方向，参与开源与校园项目。</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 作品集 -->
+    <section class="section" id="works">
+      <div class="container">
+        <h2 class="section-title">作品</h2>
+        <p class="section-intro">精选一些代表项目，展示你能做什么、做得多好。</p>
+
+        <div class="works-grid">
+          <article class="work-card">
+            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品1详情">
+              <span class="work-cover-bg c1"></span>
+            </a>
+            <h3>极简任务管理</h3>
+            <p class="work-desc">一款轻量、专注的任务管理 Web 应用。</p>
+            <div class="work-tags"><span class="tag">React</span><span class="tag">TypeScript</span></div>
+          </article>
+          <article class="work-card">
+            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品2详情">
+              <span class="work-cover-bg c2"></span>
+            </a>
+            <h3>数据可视化大屏</h3>
+            <p class="work-desc">面向运营的数据可视化看板。</p>
+            <div class="work-tags"><span class="tag">ECharts</span><span class="tag">Vue</span></div>
+          </article>
+          <article class="work-card">
+            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品3详情">
+              <span class="work-cover-bg c3"></span>
+            </a>
+            <h3>个人博客系统</h3>
+            <p class="work-desc">基于静态生成的内容写作平台。</p>
+            <div class="work-tags"><span class="tag">Astro</span><span class="tag">Markdown</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 我的数字分身（Demo 界面，未接入真实功能） -->
+    <section class="section" id="avatar">
+      <div class="container">
+        <h2 class="section-title">我的数字分身</h2>
+        <p class="section-intro">一个会「认识我」的 AI 分身（Demo 界面，功能开发中）。将来可用来回答关于我的问题、做自我介绍或陪你聊天。</p>
+
+        <div class="avatar-app">
+          <div class="avatar-panel">
+            <div class="avatar-face" role="img" aria-label="数字分身形象占位"></div>
+            <div class="avatar-meta">
+              <strong>小明的分身</strong>
+              <span>基于我的公开信息构建 · Demo</span>
+            </div>
+            <div class="avatar-status">● 待机中</div>
+          </div>
+
+          <div class="chat">
+            <div class="chat-log">
+              <div class="msg msg-bot">
+                <span>你好！我是小明的数字分身，可以聊聊关于他的事情：技能、经历、作品，或是任何你好奇的问题。</span>
+              </div>
+              <div class="msg msg-user">
+                <span>你擅长什么？</span>
+              </div>
+              <div class="msg msg-bot">
+                <span>我擅长 Web 全栈开发，包括 TypeScript、React、Node.js，也关注产品体验与工程化。</span>
+              </div>
+              <div class="msg msg-bot">
+                <span>这只是一个 Demo 演示界面，后续会接入真正的大模型能力。</span>
+              </div>
+            </div>
+
+            <div class="chat-input">
+              <input id="avatarChatInput" type="text" placeholder="输入你的问题……（Demo）" aria-label="给数字分身留言" />
+              <button id="avatarChatSend" class="btn btn-primary" type="button">发送</button>
+            </div>
+            <p class="chat-hint">仅为演示界面 · 尚未接入对话功能</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 联系我 -->
+    <section class="section section-alt" id="contact">
+      <div class="container">
+        <h2 class="section-title">联系我</h2>
+        <p class="section-intro">无论合作、交流还是答疑，都很乐意听到你的声音。</p>
+
+        <div class="contact-row">
+          <a class="contact-item" href="mailto:hi@example.com" >
+            <span class="contact-label">邮箱</span>
+            <span class="contact-value">hi@example.com</span>
+          </a>
+          <a class="contact-item" href="#" target="_blank" rel="noopener">
+            <span class="contact-label">GitHub</span>
+            <span class="contact-value">@username</span>
+          </a>
+          <a class="contact-item" href="#" target="_blank" rel="noopener">
+            <span class="contact-label">微博</span>
+            <span class="contact-value">@username</span>
+          </a>
+        </div>
+
+        <!-- 联系表单（占位，接入方式见 05-技术方案） -->
+        <form class="contact-form" action="#" method="post">
+          <div class="field">
+            <label for="name">称呼</label>
+            <input id="name" name="name" type="text" placeholder="你的称呼" />
+          </div>
+          <div class="field">
+            <label for="email">邮箱</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="message">留言</label>
+            <textarea id="message" name="message" rows="4" placeholder="想对我说点什么"></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit">发送留言</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-copy">© 2026 张小明 · 保留所有权利</span>
+      <a class="footer-top" href="#top">返回顶部 ↑</a>
+    </div>
+  </footer>
+</body>
+</html>
