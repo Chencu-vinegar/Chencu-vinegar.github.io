@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>我的个人主页 · 占位演示</title>
-  <meta name="description" content="我的个人主页 —— 展示我是谁、我做过什么、如何联系我。（占位内容演示版）" />
+  <title>陈渠梁 · 个人主页</title>
+  <meta name="description" content="陈渠梁的个人主页 —— 天津大学香港理工大学深圳未来技术学院 2026 级学生，主修计算机科学与技术。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="styles/main.css" />
   <script src="scripts/main.js" defer></script>
@@ -20,7 +20,6 @@
       <nav class="site-nav" id="siteNav" aria-label="页面导航">
         <a href="#about">关于</a>
         <a href="#experience">经历</a>
-        <a href="#works">作品</a>
         <a href="#avatar">分身</a>
         <a href="#contact">联系</a>
       </nav>
@@ -39,15 +38,10 @@
           <!-- 占位头像：移除图片后用 CSS 渐变占位，替换时换成真实头像图 -->
           <div class="avatar" role="img" aria-label="头像占位"></div>
         </div>
-        <h1 class="hero-title">你好，我是<span class="accent">张小明</span></h1>
-        <p class="hero-slogan">全栈开发者 · 热爱开源 · 专注产品体验</p>
-        <p class="hero-tags">
-          <span class="tag">TypeScript</span>
-          <span class="tag">React</span>
-          <span class="tag">Node.js</span>
-        </p>
+        <h1 class="hero-title">你好，我是<span class="accent">陈渠梁</span></h1>
+        <p class="hero-slogan">天津大学香港理工大学深圳未来技术学院 · 2026 级学生 · 主修计算机科学与技术</p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#works">查看作品</a>
+          <a class="btn btn-primary" href="#about">了解我</a>
           <a class="btn btn-ghost" href="#contact">联系我</a>
         </div>
       </div>
@@ -57,28 +51,26 @@
     <section class="section" id="about">
       <div class="container">
         <h2 class="section-title">关于我</h2>
-        <p class="section-intro">一段简短、真实、有温度的自我介绍，让访客快速认识你。</p>
+        <p class="section-intro">一个相信「代码能改变世界」的年轻人，正在计算机科学的路上探索不止。</p>
 
         <div class="about-grid">
           <div class="about-text">
-            <p>你好！我是张小明，一名专注于 Web 全栈开发的工程师。喜欢把复杂的问题做简单，把代码写得干净、可维护。</p>
-            <p>平时关注前端工程化、用户体验与开源社区，也在持续输出技术内容。</p>
+            <p>你好，我是陈渠梁，天津大学香港理工大学深圳未来技术学院 2026 级学生，主修计算机科学与技术。相比按部就班，我更享受面对未知时那种「拆解一个问题、动手实现、再不断优化」的过程。</p>
+            <p>我把创新当作一种习惯：不满足于已有的方案，愿意用新的视角去重新设计。未来的路上，我希望用技术把「天马行空的想法」变成「真正可用的东西」，也期待与志同道合的人一起探索更多可能。</p>
           </div>
           <div class="about-stats">
-            <div class="stat"><strong>5</strong><span>年经验</span></div>
-            <div class="stat"><strong>20+</strong><span>项目</span></div>
-            <div class="stat"><strong>1w+</strong><span>用户</span></div>
+            <div class="stat"><strong>2026</strong><span>级本科生</span></div>
+            <div class="stat"><strong>TJU × HKPU</strong><span>未来技术学院</span></div>
+            <div class="stat"><strong>CS</strong><span>计算机科学与技术</span></div>
           </div>
         </div>
 
-        <h3 class="subheading">技能</h3>
+        <h3 class="subheading">兴趣方向</h3>
         <div class="skill-list">
-          <span class="tag">TypeScript</span>
-          <span class="tag">React</span>
-          <span class="tag">Vue</span>
-          <span class="tag">Node.js</span>
-          <span class="tag">UI 设计</span>
-          <span class="tag">写作</span>
+          <span class="tag">计算机科学与技术</span>
+          <span class="tag">创新实践</span>
+          <span class="tag">技术探索</span>
+          <span class="tag">人工智能</span>
         </div>
       </div>
     </section>
@@ -87,60 +79,15 @@
     <section class="section section-alt" id="experience">
       <div class="container">
         <h2 class="section-title">经历</h2>
-        <p class="section-intro">按时间倒序回顾你的教育、职业与项目经历。</p>
+        <p class="section-intro">正在逐步成长，留下每一个值得记录的脚印。</p>
 
         <ol class="timeline">
           <li class="timeline-item">
-            <time>2023 — 至今</time>
-            <h3>高级前端工程师 · 某科技公司</h3>
-            <p>负责核心产品前端架构与工程化建设，主导多个 B 端项目落地。</p>
-          </li>
-          <li class="timeline-item">
-            <time>2020 — 2023</time>
-            <h3>前端工程师 · 某互联网公司</h3>
-            <p>参与电商 C 端与中后台系统开发，关注性能与体验优化。</p>
-          </li>
-          <li class="timeline-item">
-            <time>2016 — 2020</time>
-            <h3>计算机科学与技术 · 某大学</h3>
-            <p>本科阶段，专注 Web 方向，参与开源与校园项目。</p>
+            <time>2026 — 至今</time>
+            <h3>本科生 · 天津大学香港理工大学深圳未来技术学院</h3>
+            <p>主修计算机科学与技术，关注创新与实践。</p>
           </li>
         </ol>
-      </div>
-    </section>
-
-    <!-- 作品集 -->
-    <section class="section" id="works">
-      <div class="container">
-        <h2 class="section-title">作品</h2>
-        <p class="section-intro">精选一些代表项目，展示你能做什么、做得多好。</p>
-
-        <div class="works-grid">
-          <article class="work-card">
-            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品1详情">
-              <span class="work-cover-bg c1"></span>
-            </a>
-            <h3>极简任务管理</h3>
-            <p class="work-desc">一款轻量、专注的任务管理 Web 应用。</p>
-            <div class="work-tags"><span class="tag">React</span><span class="tag">TypeScript</span></div>
-          </article>
-          <article class="work-card">
-            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品2详情">
-              <span class="work-cover-bg c2"></span>
-            </a>
-            <h3>数据可视化大屏</h3>
-            <p class="work-desc">面向运营的数据可视化看板。</p>
-            <div class="work-tags"><span class="tag">ECharts</span><span class="tag">Vue</span></div>
-          </article>
-          <article class="work-card">
-            <a class="work-cover" href="#" target="_blank" rel="noopener" aria-label="作品3详情">
-              <span class="work-cover-bg c3"></span>
-            </a>
-            <h3>个人博客系统</h3>
-            <p class="work-desc">基于静态生成的内容写作平台。</p>
-            <div class="work-tags"><span class="tag">Astro</span><span class="tag">Markdown</span></div>
-          </article>
-        </div>
       </div>
     </section>
 
@@ -154,7 +101,7 @@
           <div class="avatar-panel">
             <div class="avatar-face" role="img" aria-label="数字分身形象占位"></div>
             <div class="avatar-meta">
-              <strong>小明的分身</strong>
+              <strong>渠梁的数字分身</strong>
               <span>基于我的公开信息构建 · Demo</span>
             </div>
             <div class="avatar-status">● 待机中</div>
@@ -163,13 +110,13 @@
           <div class="chat">
             <div class="chat-log">
               <div class="msg msg-bot">
-                <span>你好！我是小明的数字分身，可以聊聊关于他的事情：技能、经历、作品，或是任何你好奇的问题。</span>
+                <span>你好！我是渠梁的数字分身，可以聊聊关于他的事情：学习方向、兴趣，或是任何你好奇的问题。</span>
               </div>
               <div class="msg msg-user">
-                <span>你擅长什么？</span>
+                <span>你在学什么？</span>
               </div>
               <div class="msg msg-bot">
-                <span>我擅长 Web 全栈开发，包括 TypeScript、React、Node.js，也关注产品体验与工程化。</span>
+                <span>我在天津大学香港理工大学深圳未来技术学院学计算机科学与技术，喜欢创新与技术探索。</span>
               </div>
               <div class="msg msg-bot">
                 <span>这只是一个 Demo 演示界面，后续会接入真正的大模型能力。</span>
@@ -193,17 +140,13 @@
         <p class="section-intro">无论合作、交流还是答疑，都很乐意听到你的声音。</p>
 
         <div class="contact-row">
-          <a class="contact-item" href="mailto:hi@example.com" >
+          <a class="contact-item" href="mailto:chenquliang@tju.edu.cn" >
             <span class="contact-label">邮箱</span>
-            <span class="contact-value">hi@example.com</span>
+            <span class="contact-value">chenquliang@tju.edu.cn</span>
           </a>
-          <a class="contact-item" href="#" target="_blank" rel="noopener">
-            <span class="contact-label">GitHub</span>
-            <span class="contact-value">@username</span>
-          </a>
-          <a class="contact-item" href="#" target="_blank" rel="noopener">
-            <span class="contact-label">微博</span>
-            <span class="contact-value">@username</span>
+          <a class="contact-item" href="weixin://" >
+            <span class="contact-label">微信</span>
+            <span class="contact-value">18603179528</span>
           </a>
         </div>
 
@@ -230,7 +173,7 @@
   <!-- 页脚 -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span class="footer-copy">© 2026 张小明 · 保留所有权利</span>
+      <span class="footer-copy">© 2026 陈渠梁 · 保留所有权利</span>
       <a class="footer-top" href="#top">返回顶部 ↑</a>
     </div>
   </footer>
