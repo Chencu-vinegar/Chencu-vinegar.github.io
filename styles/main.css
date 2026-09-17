@@ -264,7 +264,7 @@ img { max-width: 100%; display: block; }
 .timeline-item p { grid-column: 2; margin: 0; color: var(--color-muted); }
 
 /* ---------- 联系我 ---------- */
-.contact-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 44px; }
+.contact-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 44px; }
 .contact-item {
   display: flex; flex-direction: column; gap: 6px;
   padding: 26px; border: 2px solid var(--color-border); background: var(--color-bg);
@@ -283,6 +283,11 @@ img { max-width: 100%; display: block; }
 .contact-item-btn.is-copied { border-color: var(--color-accent); }
 .contact-item-btn.is-copied .contact-hint { opacity: 1; }
 .contact-item-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* 静态卡片（如「手机号：详谈时提供」）：不可点击，不做悬停反馈 */
+.contact-item-static { cursor: default; }
+.contact-item-static:hover { border-color: var(--color-border); }
+.contact-item-static .contact-value { color: var(--color-muted); font-weight: 700; }
 
 /* ---------- 表单（联系留言 + 意见反馈） ---------- */
 .contact-form, .feedback-form { display: flex; flex-direction: column; gap: 18px; max-width: 720px; }

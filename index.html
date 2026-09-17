@@ -6,6 +6,8 @@
   <title>陈渠梁 · 个人主页</title>
   <meta name="description" content="陈渠梁的个人主页 —— 天津大学香港理工大学深圳未来技术学院 2026 级学生，主修计算机科学与技术。站内可体验数字分身对话，也欢迎提交意见反馈。" />
   <link rel="stylesheet" href="styles/main.css" />
+  <!-- 运行配置（公开信息，必须在 main.js 之前）：静态托管时反馈表单直连 Supabase -->
+  <script src="scripts/config.js"></script>
   <script src="scripts/main.js" defer></script>
 </head>
 <body>
@@ -214,11 +216,15 @@
           <button class="contact-item contact-item-btn" type="button" id="wechatCopy" data-wechat="18603179528" title="点击复制微信号">
             <span class="contact-label">微信</span>
             <span class="contact-value">18603179528</span>
-            <span class="contact-hint" id="wechatHint">点击复制</span>
+            <span class="contact-hint" id="wechatHint">非本人手机号 · 点击复制</span>
           </button>
+          <div class="contact-item contact-item-static">
+            <span class="contact-label">手机号</span>
+            <span class="contact-value">详谈时提供</span>
+          </div>
         </div>
 
-        <!-- 联系表单：提交到 /api/feedback（category 固定为「留言」） -->
+        <!-- 联系表单：与意见反馈共用提交流程（静态托管直连 Supabase，本地走后端），category 固定为「留言」 -->
         <form class="contact-form" action="#" method="post">
           <div class="field">
             <label for="name">称呼</label>

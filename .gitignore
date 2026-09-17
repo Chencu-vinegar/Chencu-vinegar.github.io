@@ -11,6 +11,12 @@
 .opencode/outbox/
 .opencode/previews/
 
+# ---------- DeepWorks / opencode 工具自身配置（不属于主页内容，公开仓库不包含） ----------
+# 这些文件是 AI 开发工具的工作配置（含本地绝对路径、工具提示词等），
+# 与「个人主页」这个项目本身无关，因此不进入公开仓库；文件仍保留在本地磁盘。
+.opencode/
+opencode.jsonc
+
 # ---------- 本轮会话临时文件 ----------
 .deepworks/
 *.log

@@ -1,6 +1,7 @@
 /* ============================================================
    个人主页 · 交互脚本
    功能：主题切换 / 移动端菜单 / 锚点平滑滚动 / 微信点击复制 / 意见反馈提交 / 数字分身对话
+   说明：反馈提交有两条路径 —— 静态托管直连 Supabase，本地回退同源 /api/feedback。
    ============================================================ */
 (function () {
   "use strict";
@@ -67,8 +68,14 @@
     });
   });
 
-  /* ---------- 意见反馈：提交到 /api/feedback（服务端写入 Supabase） ---------- */
+  /* ---------- 意见反馈：静态托管直连 Supabase，本地回退同源后端 ---------- */
   var feedbackBusy = false;
+
+  // 公开运行配置（scripts/config.js）。没配置就走同源后端 /api/feedback。
+  var SITE_CONFIG = (typeof window !== "undefined" && window.SITE_CONFIG) ? window.SITE_CONFIG : {};
+  var SUPABASE_ENDPOINT = (SITE_CONFIG.supabaseUrl && SITE_CONFIG.supabaseKey)
+    ? String(SITE_CONFIG.supabaseUrl).replace(/\/+$/, "") + "/rest/v1/" + (SITE_CONFIG.supabaseTable || "feedback")
+    : "";
 
   function setStatus(el, text, kind) {
     if (!el) return;
@@ -76,13 +83,42 @@
     el.className = "feedback-status" + (kind ? " is-" + kind : "");
   }
 
-  // 通用提交：完整反馈表单与原「联系我」留言表单共用
-  function submitFeedback(payload, btn, statusEl) {
-    if (feedbackBusy) return Promise.resolve(false);
-    feedbackBusy = true;
-    if (btn) btn.disabled = true;
-    setStatus(statusEl, "正在提交……", "pending");
+  // 服务端字段长度保护的前端镜像：直连时避免被数据库约束打回
+  function trimTo(value, max) {
+    var s = (value == null ? "" : String(value)).trim();
+    return s ? s.slice(0, max) : null;
+  }
 
+  // 模式 A：浏览器直连 Supabase（RLS 只放行匿名 insert，用的是可公开的 publishable key）
+  function postDirect(payload) {
+    var record = {
+      nickname: trimTo(payload.nickname, 50),
+      contact: trimTo(payload.contact, 120),
+      category: trimTo(payload.category, 20) || "其他",
+      message: String(payload.message == null ? "" : payload.message).trim(),
+      page_url: trimTo(payload.page_url, 500),
+      user_agent: (navigator.userAgent || "").slice(0, 300) || null
+    };
+
+    return fetch(SUPABASE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SITE_CONFIG.supabaseKey,
+        "Authorization": "Bearer " + SITE_CONFIG.supabaseKey,
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(record)
+    }).then(function (res) {
+      if (res.ok) return true;
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        throw new Error(data.message || data.hint || ("HTTP " + res.status));
+      });
+    });
+  }
+
+  // 模式 B：同源后端 /api/feedback（本地 py server.py 运行时）
+  function postBackend(payload) {
     return fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,20 +126,41 @@
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
         if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
-        return data;
+        return true;
       });
-    }).then(function () {
-      setStatus(statusEl, "提交成功，感谢你的反馈！", "success");
-      return true;
-    }).catch(function (err) {
-      var msg = err && err.message ? err.message : "网络异常";
-      setStatus(statusEl, "提交失败：" + msg, "error");
-      return false;
-    }).then(function (ok) {
-      feedbackBusy = false;
-      if (btn) btn.disabled = false;
-      return ok;
     });
+  }
+
+  // 通用提交：完整反馈表单与原「联系我」留言表单共用
+  function submitFeedback(payload, btn, statusEl) {
+    if (feedbackBusy) return Promise.resolve(false);
+
+    // 蜜罐命中：机器人会填写隐藏字段，这里假装成功，且一个字节都不发出去
+    var honey = (payload && payload.website) ? String(payload.website).trim() : "";
+    if (honey) {
+      setStatus(statusEl, "提交成功，感谢你的反馈！", "success");
+      return Promise.resolve(true);
+    }
+
+    feedbackBusy = true;
+    if (btn) btn.disabled = true;
+    setStatus(statusEl, "正在提交……", "pending");
+
+    return (SUPABASE_ENDPOINT ? postDirect(payload) : postBackend(payload))
+      .then(function () {
+        setStatus(statusEl, "提交成功，感谢你的反馈！", "success");
+        return true;
+      })
+      .catch(function (err) {
+        var msg = err && err.message ? err.message : "网络异常";
+        setStatus(statusEl, "提交失败：" + msg, "error");
+        return false;
+      })
+      .then(function (ok) {
+        feedbackBusy = false;
+        if (btn) btn.disabled = false;
+        return ok;
+      });
   }
 
   /* ---------- 完整反馈表单 ---------- */
@@ -323,6 +380,8 @@
   var wechatBtn = document.getElementById("wechatCopy");
   if (wechatBtn) {
     var wechatHint = document.getElementById("wechatHint");
+    // 记住初始提示文案（含「非本人手机号」备注），复制后原样恢复
+    var wechatDefaultHint = wechatHint ? wechatHint.textContent : "点击复制";
     var wechatTimer = null;
 
     var copyText = function (text) {
@@ -350,7 +409,7 @@
       wechatBtn.classList.toggle("is-copied", !!ok);
       if (wechatTimer) window.clearTimeout(wechatTimer);
       wechatTimer = window.setTimeout(function () {
-        if (wechatHint) wechatHint.textContent = "点击复制";
+        if (wechatHint) wechatHint.textContent = wechatDefaultHint;
         wechatBtn.classList.remove("is-copied");
       }, 2000);
     };

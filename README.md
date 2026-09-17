@@ -2,6 +2,8 @@
 
 一个用于展示个人品牌、作品、经历与联系方式的个人主页项目。
 
+> **在线地址：https://chencu-vinegar.github.io/** （GitHub Pages 静态托管，推送即自动发布）
+>
 > 当前已进入**迭代完善阶段**：单页主页、数字分身（DeepSeek）、意见反馈（Supabase）均已落地，版式为高对比色块风格。本仓库内的 `docs/` 目录是「单一事实来源（Single Source of Truth）」，记录需求、设计规范与进度。
 > **新对话框/新会话请先阅读 [`docs/00-项目交接与进度.md`](docs/00-项目交接与进度.md)** —— 它记录了当前决策、进度与下一步，便于无缝接管。
 
@@ -43,21 +45,37 @@
 ├── styles/
 │   └── main.css                  # 全局样式（高对比色块版式 + CSS 变量主题 + 数字分身 UI）
 ├── scripts/
+│   ├── config.js                 # 公开运行配置（Supabase 地址 + publishable 公钥），须先于 main.js 加载
 │   └── main.js                   # 交互脚本（主题切换/菜单/平滑滚动/意见反馈提交/分身 AI 调用与回退）
 └── assets/images/                # 图片素材（avatar.jpg 已接入）
 ```
 
+> **不纳入仓库**（已在 `.gitignore`）：`.env`（密钥）、`.opencode/` 与 `opencode.jsonc`（AI 开发工具自身配置，与主页无关）、`.deepworks/`（会话临时文件）、`uploads/`（临时素材）。
+
+## 部署（GitHub Pages）
+
+本站以 **GitHub 用户名站点**方式发布：仓库名 = `<用户名>.github.io`，站点即根路径。
+
+| 项 | 值 |
+| --- | --- |
+| 仓库 | `Chencu-vinegar.github.io`（Public） |
+| 发布源 | `master` 分支 `/ (root)` |
+| 在线地址 | https://chencu-vinegar.github.io/ |
+| 更新方式 | `git push` 后自动重新发布（约 1–2 分钟） |
+
+静态托管下的功能差异：**意见反馈照常可用**（浏览器直连 Supabase）；**数字分身处于演示模式**（DeepSeek 密钥只在服务端，线上无后端）。详见 `docs/05-技术方案.md` §4.1。
+
 ## 使用方式
 
-1. **预览**：直接用浏览器打开 `index.html`，或本地起一个静态服务（见下）。
-2. **确认方向**：阅读 `docs/01` 到 `docs/06`，对其中标注「待确认 / 建议 / 可选」的决策点给出你的选择。
-3. **补充素材**：按 `docs/04-内容清单.md` 提供真实内容与图片，替换 `index.html` 中的占位内容。
-4. **进入开发**：确认 `docs/05` 技术选型与 `docs/06` 计划后，开始实现。
+1. **本地看效果**：直接用浏览器打开 `index.html`，或按下方说明启动本地服务。
+2. **改内容**：编辑 `index.html`（文案与结构都在这一处）；改配色/字号则改 `styles/main.css` 顶部的设计 Token。
+3. **补充素材**：按 `docs/04-内容清单.md` 提供更多经历与作品，再扩展对应区块。
+4. **发布更新**：`git push` 即可，GitHub Pages 会自动重新发布。
 
 ## 本地预览
 
 ```powershell
-# 方式一：直接用浏览器打开 index.html（数字分身走本地演示回复）
+# 方式一：直接用浏览器打开 index.html（数字分身走本地演示回复，反馈直连 Supabase）
 start index.html
 
 # 方式二（推荐）：启动带数字分身后端的本地服务
@@ -69,39 +87,46 @@ py server.py
 
 页面中的「我的数字分身」支持接入 **DeepSeek** 大模型：
 
-- **未配置密钥时**：自动使用本地关键词回复（演示模式），页面照常可用。
-- **启用真实 AI**：
+- **未配置密钥时（含线上 GitHub Pages）**：自动使用本地关键词回复（演示模式），页面照常可用。
+- **启用真实 AI（仅本地）**：
   1. 复制 `.env.example` 为 `.env`
   2. 在其中填入 `DEEPSEEK_API_KEY`（在 https://platform.deepseek.com/ 获取）
   3. 运行 `py server.py`，访问 `http://localhost:8000`
 
 > 密钥只保存在服务端 `.env`（已被 `.gitignore` 忽略），前端只调用同源的 `/api/chat`，不会暴露密钥。
+> 静态托管没有服务端进程，因此**线上分身始终是演示模式**；若要让线上也接真 AI，需要一个 Serverless 函数来承载密钥。
 > 分身的人格与知识来源定义在 `server.py` 顶部的 `SYSTEM_PROMPT`，可按需修改。
 
 ## 意见反馈（Supabase）
 
 页面底部「意见反馈」区块用于收集访客建议，数据写入 **Supabase**（PostgreSQL）的 `feedback` 表：
 
-- **流程**：表单 → 同源 `POST /api/feedback` → Supabase REST 接口。
-- **安全**：密钥只存服务端 `.env`；数据库开启 RLS，仅放行匿名**插入**，即使密钥泄露也读不到反馈内容。
-- **防刷**：隐藏蜜罐字段 + 服务端长度校验（内容 ≤ 2000 字）。
+- **流程（双路径，自动选择）**：
+  - **线上 / 静态托管**：浏览器 → `POST /rest/v1/feedback`（Supabase REST，配置在 `scripts/config.js`）
+  - **本地**：浏览器 → `POST /api/feedback` → Supabase（`server.py` 代理）
+- **安全**：数据库开启 RLS，仅放行匿名**插入**，读不到反馈内容。前端用的是 Supabase **publishable / anon 公钥**（该产品本就设计为可公开用于浏览器端）；`service_role` 密钥从未使用。
+- **防刷**：隐藏蜜罐字段 + 前后端长度校验（内容 ≤ 2000 字）。
 - **查看反馈**：登录 Supabase 控制台 → Table Editor → `feedback` 表（或写 SQL 查询）。
 
-**启用步骤**：
+**启用 / 更换 Supabase 项目**：
 
 1. 在 Supabase 控制台新建项目（Region 建议 Singapore / Tokyo，国内访问更快）
 2. 打开 SQL Editor，粘贴执行 `sql/feedback.sql`
 3. 到 Project Settings → API Keys 复制 **Project URL** 和 **anon / publishable key**
-4. 填入本地 `.env`：
+4. 前端配置写入 `scripts/config.js`（线上与本地直连模式都读它）：
 
-```ini
-SUPABASE_URL=https://xxxxxxxx.supabase.co
-SUPABASE_KEY=eyJhbGciOi...
+```js
+window.SITE_CONFIG = {
+  supabaseUrl: "https://xxxxxxxx.supabase.co",
+  supabaseKey: "sb_publishable_...",
+  supabaseTable: "feedback"
+};
 ```
 
-5. 重启服务 `py server.py`，`/api/health` 里的 `feedbackEnabled` 变为 `true` 即生效
+5. 本地后端模式另需写入 `.env`（`SUPABASE_URL` / `SUPABASE_KEY`），重启 `py server.py` 后 `/api/health` 的 `feedbackEnabled` 变为 `true`
+6. `git push` 后线上即时生效
 
-> 未配置时页面照常浏览，提交时会提示「反馈功能尚未接通」。
+> `scripts/config.js` 留空 `supabaseUrl` / `supabaseKey` 时，前端自动回退为调用同源后端。
 
 ## 状态
 
@@ -113,6 +138,7 @@ SUPABASE_KEY=eyJhbGciOi...
 - [x] 数字分身配置真实 API Key（DeepSeek，已实测连通）
 - [x] 意见反馈接入 Supabase（已实测：提交入库 / 空值与超长拦截 / 蜜罐静默丢弃）
 - [x] 版式改版：整页重排为高对比色块版式（保留蓝青主色，素材与文案全部自制）
+- [x] 隐私调整：微信卡片标注「非本人手机号」，手机号卡片改为「详谈时提供」
+- [x] 反馈表单改造：静态托管下浏览器直连 Supabase（线上可正常收集）
+- [x] 部署上线 GitHub Pages → https://chencu-vinegar.github.io/
 - [ ] 其余素材补齐（更多经历 / 作品）
-- [ ] 技术选型确定（纯静态已定，待具体部署平台）
-- [ ] 部署上线
