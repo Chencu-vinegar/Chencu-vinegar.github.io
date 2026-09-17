@@ -35,8 +35,17 @@
     <section class="hero" id="hero">
       <div class="container hero-inner">
         <div class="avatar-wrap">
-          <!-- 占位头像：移除图片后用 CSS 渐变占位，替换时换成真实头像图 -->
-          <div class="avatar" role="img" aria-label="头像占位"></div>
+          <!-- 头像：把照片放到 assets/images/avatar.jpg 即可自动显示（建议正方形，400×400 以上）
+               若文件不存在，自动回退为「陈」字头像，不会出现破图 -->
+          <img
+            class="avatar"
+            src="assets/images/avatar.jpg"
+            alt="陈渠梁的头像"
+            width="140"
+            height="140"
+            onerror="this.style.display='none';this.closest('.avatar-wrap').classList.add('is-fallback');"
+          />
+          <span class="avatar-fallback-text" aria-hidden="true">陈</span>
         </div>
         <h1 class="hero-title">你好，我是<span class="accent">陈渠梁</span></h1>
         <p class="hero-slogan">天津大学香港理工大学深圳未来技术学院 · 2026 级学生 · 主修计算机科学与技术</p>
@@ -91,20 +100,28 @@
       </div>
     </section>
 
-    <!-- 我的数字分身（Demo 界面，未接入真实功能） -->
+    <!-- 我的数字分身（可接入 DeepSeek 大模型；未配置密钥时自动使用演示回复） -->
     <section class="section" id="avatar">
       <div class="container">
         <h2 class="section-title">我的数字分身</h2>
-        <p class="section-intro">一个会「认识我」的 AI 分身（Demo 界面，功能开发中）。将来可用来回答关于我的问题、做自我介绍或陪你聊天。</p>
+        <p class="section-intro">一个会「认识我」的 AI 分身。可以聊聊我的学习方向、兴趣，或是任何你好奇的问题。</p>
 
         <div class="avatar-app">
           <div class="avatar-panel">
-            <div class="avatar-face" role="img" aria-label="数字分身形象占位"></div>
+            <img
+              class="avatar-face"
+              src="assets/images/avatar.jpg"
+              alt="渠梁的数字分身"
+              width="120"
+              height="120"
+              onerror="this.style.display='none';this.closest('.avatar-panel').classList.add('face-fallback');"
+            />
+            <span class="avatar-face-fallback" aria-hidden="true">渠</span>
             <div class="avatar-meta">
               <strong>渠梁的数字分身</strong>
-              <span>基于我的公开信息构建 · Demo</span>
+              <span>基于我的公开信息构建</span>
             </div>
-            <div class="avatar-status">● 待机中</div>
+            <div class="avatar-status" id="avatarStatus">● 待机中</div>
           </div>
 
           <div class="chat">
