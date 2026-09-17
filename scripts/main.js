@@ -1,6 +1,6 @@
 /* ============================================================
    个人主页 · 交互脚本
-   功能：主题切换 / 移动端菜单 / 锚点平滑滚动 / 表单占位提示
+   功能：主题切换 / 移动端菜单 / 锚点平滑滚动 / 微信点击复制 / 意见反馈提交 / 数字分身对话
    ============================================================ */
 (function () {
   "use strict";
@@ -67,12 +67,125 @@
     });
   });
 
-  /* ---------- 联系表单：占位演示提示 ---------- */
-  var form = document.querySelector(".contact-form");
-  if (form) {
-    form.addEventListener("submit", function (e) {
+  /* ---------- 意见反馈：提交到 /api/feedback（服务端写入 Supabase） ---------- */
+  var feedbackBusy = false;
+
+  function setStatus(el, text, kind) {
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "feedback-status" + (kind ? " is-" + kind : "");
+  }
+
+  // 通用提交：完整反馈表单与原「联系我」留言表单共用
+  function submitFeedback(payload, btn, statusEl) {
+    if (feedbackBusy) return Promise.resolve(false);
+    feedbackBusy = true;
+    if (btn) btn.disabled = true;
+    setStatus(statusEl, "正在提交……", "pending");
+
+    return fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+        return data;
+      });
+    }).then(function () {
+      setStatus(statusEl, "提交成功，感谢你的反馈！", "success");
+      return true;
+    }).catch(function (err) {
+      var msg = err && err.message ? err.message : "网络异常";
+      setStatus(statusEl, "提交失败：" + msg, "error");
+      return false;
+    }).then(function (ok) {
+      feedbackBusy = false;
+      if (btn) btn.disabled = false;
+      return ok;
+    });
+  }
+
+  /* ---------- 完整反馈表单 ---------- */
+  var feedbackForm = document.getElementById("feedbackForm");
+  if (feedbackForm) {
+    var fbSubmit = document.getElementById("fbSubmit");
+    var fbStatus = document.getElementById("fbStatus");
+    var fbMessage = document.getElementById("fbMessage");
+    var fbCounter = document.getElementById("fbCounter");
+
+    if (fbMessage && fbCounter) {
+      var syncCounter = function () { fbCounter.textContent = String(fbMessage.value.length); };
+      fbMessage.addEventListener("input", syncCounter);
+      syncCounter();
+    }
+
+    feedbackForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      alert("这是占位演示表单，尚未接入后端。接入方式见 docs/05-技术方案.md。");
+      var message = fbMessage ? fbMessage.value.trim() : "";
+      if (!message) {
+        setStatus(fbStatus, "请先填写反馈内容。", "error");
+        if (fbMessage) fbMessage.focus();
+        return;
+      }
+      if (message.length > 2000) {
+        setStatus(fbStatus, "反馈内容过长，请控制在 2000 字以内。", "error");
+        return;
+      }
+
+      var val = function (id) {
+        var el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+      };
+      var websiteEl = document.getElementById("fbWebsite");
+
+      submitFeedback({
+        nickname: val("fbName"),
+        contact: val("fbContact"),
+        category: val("fbCategory") || "其他",
+        message: message,
+        website: websiteEl ? websiteEl.value : "",
+        page_url: location.href
+      }, fbSubmit, fbStatus).then(function (ok) {
+        if (ok) {
+          feedbackForm.reset();
+          if (fbCounter) fbCounter.textContent = "0";
+        }
+      });
+    });
+  }
+
+  /* ---------- 原「联系我」留言表单：同样接入反馈接口 ---------- */
+  var contactForm = document.querySelector(".contact-form");
+  if (contactForm) {
+    var contactStatus = document.createElement("p");
+    contactStatus.className = "feedback-status";
+    contactStatus.setAttribute("role", "status");
+    contactStatus.setAttribute("aria-live", "polite");
+    contactForm.appendChild(contactStatus);
+
+    contactForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var msgEl = contactForm.querySelector('textarea[name="message"]');
+      var nameEl = contactForm.querySelector('input[name="name"]');
+      var mailEl = contactForm.querySelector('input[name="email"]');
+      var message = msgEl ? msgEl.value.trim() : "";
+
+      if (!message) {
+        setStatus(contactStatus, "请先填写留言内容。", "error");
+        if (msgEl) msgEl.focus();
+        return;
+      }
+
+      submitFeedback({
+        nickname: nameEl ? nameEl.value.trim() : "",
+        contact: mailEl ? mailEl.value.trim() : "",
+        category: "留言",
+        message: message,
+        page_url: location.href
+      }, contactForm.querySelector('button[type="submit"]'), contactStatus).then(function (ok) {
+        if (ok) contactForm.reset();
+      });
     });
   }
 
@@ -204,5 +317,50 @@
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) { if (data) avatarSetStatus(!!data.aiEnabled); })
       .catch(function () { /* 直接打开文件或未启动服务时忽略 */ });
+  }
+
+  // 微信：点击复制（weixin:// 协议浏览器普遍不识别，点了没反应）
+  var wechatBtn = document.getElementById("wechatCopy");
+  if (wechatBtn) {
+    var wechatHint = document.getElementById("wechatHint");
+    var wechatTimer = null;
+
+    var copyText = function (text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // 回退：http:// 下 clipboard API 不可用
+      return new Promise(function (resolve, reject) {
+        var tmp = document.createElement("textarea");
+        tmp.value = text;
+        tmp.setAttribute("readonly", "");
+        tmp.style.position = "fixed";
+        tmp.style.left = "-9999px";
+        document.body.appendChild(tmp);
+        tmp.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+        document.body.removeChild(tmp);
+        if (ok) { resolve(); } else { reject(new Error("copy failed")); }
+      });
+    };
+
+    var showWechatHint = function (text, ok) {
+      if (wechatHint) wechatHint.textContent = text;
+      wechatBtn.classList.toggle("is-copied", !!ok);
+      if (wechatTimer) window.clearTimeout(wechatTimer);
+      wechatTimer = window.setTimeout(function () {
+        if (wechatHint) wechatHint.textContent = "点击复制";
+        wechatBtn.classList.remove("is-copied");
+      }, 2000);
+    };
+
+    wechatBtn.addEventListener("click", function () {
+      var id = wechatBtn.getAttribute("data-wechat") || "";
+      if (!id) return;
+      copyText(id)
+        .then(function () { showWechatHint("已复制", true); })
+        .catch(function () { showWechatHint("请手动复制", false); });
+    });
   }
 })();

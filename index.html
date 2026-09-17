@@ -22,6 +22,7 @@
         <a href="#experience">经历</a>
         <a href="#avatar">分身</a>
         <a href="#contact">联系</a>
+        <a href="#feedback">反馈</a>
       </nav>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色/浅色主题">◐</button>
       <button class="menu-toggle" id="menuToggle" type="button" aria-label="打开菜单" aria-expanded="false">
@@ -158,13 +159,14 @@
             <span class="contact-label">邮箱</span>
             <span class="contact-value">chenquliang@tju.edu.cn</span>
           </a>
-          <a class="contact-item" href="weixin://" >
+          <button class="contact-item contact-item-btn" type="button" id="wechatCopy" data-wechat="18603179528" title="点击复制微信号">
             <span class="contact-label">微信</span>
             <span class="contact-value">18603179528</span>
-          </a>
+            <span class="contact-hint" id="wechatHint">点击复制</span>
+          </button>
         </div>
 
-        <!-- 联系表单（占位，接入方式见 05-技术方案） -->
+        <!-- 联系表单：提交到 /api/feedback（category 固定为「留言」） -->
         <form class="contact-form" action="#" method="post">
           <div class="field">
             <label for="name">称呼</label>
@@ -179,6 +181,54 @@
             <textarea id="message" name="message" rows="4" placeholder="想对我说点什么"></textarea>
           </div>
           <button class="btn btn-primary" type="submit">发送留言</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 意见反馈 -->
+    <section class="section" id="feedback">
+      <div class="container">
+        <h2 class="section-title">意见反馈</h2>
+        <p class="section-intro">对主页、内容或任何方面有想法，都欢迎告诉我。每条反馈我都会看到。</p>
+
+        <form class="feedback-form" id="feedbackForm" novalidate>
+          <div class="field-row">
+            <div class="field">
+              <label for="fbName">称呼 <span class="field-optional">选填</span></label>
+              <input id="fbName" name="nickname" type="text" maxlength="50" placeholder="怎么称呼你" />
+            </div>
+            <div class="field">
+              <label for="fbContact">联系方式 <span class="field-optional">选填</span></label>
+              <input id="fbContact" name="contact" type="text" maxlength="120" placeholder="邮箱或微信，方便我回复你" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fbCategory">反馈类型</label>
+            <select id="fbCategory" name="category">
+              <option value="建议">内容建议</option>
+              <option value="问题">问题反馈</option>
+              <option value="合作">合作交流</option>
+              <option value="其他" selected>其他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="fbMessage">反馈内容 <span class="field-required">必填</span></label>
+            <textarea id="fbMessage" name="message" rows="5" maxlength="2000" required placeholder="想说的内容，越具体越好"></textarea>
+            <div class="field-counter"><span id="fbCounter">0</span> / 2000</div>
+          </div>
+
+          <!-- 蜜罐字段：正常访客看不到，机器人会填写 → 服务端直接丢弃 -->
+          <div class="hp-field" aria-hidden="true">
+            <label for="fbWebsite">请勿填写此栏</label>
+            <input id="fbWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="feedback-actions">
+            <button class="btn btn-primary" type="submit" id="fbSubmit">提交反馈</button>
+            <p class="feedback-status" id="fbStatus" role="status" aria-live="polite"></p>
+          </div>
         </form>
       </div>
     </section>
