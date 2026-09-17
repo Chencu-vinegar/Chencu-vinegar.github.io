@@ -246,6 +246,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: #22c55e; margin-right: 6px;
 }
+.avatar-status.is-online {
+  color: #16a34a;
+  border-color: color-mix(in srgb, #22c55e 45%, var(--color-border));
+}
 
 .chat {
   border: 1px solid var(--color-border); border-radius: var(--radius);
@@ -284,6 +288,38 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 .chat-hint { text-align: center; color: var(--color-muted); font-size: 12px; margin: 0; padding: 0 0 12px; }
+
+/* 快捷提问 */
+.quick-questions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 14px 12px; background: var(--color-bg);
+}
+.quick-chip {
+  font: inherit; font-size: 13px; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-muted);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.quick-chip:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.quick-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 输入中动画 */
+.msg-typing span.typing {
+  display: inline-flex; gap: 5px; align-items: center;
+  padding: 14px 16px;
+}
+.typing i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-muted); display: inline-block;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing i:nth-child(2) { animation-delay: 0.15s; }
+.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
 
 /* ---------- 数字分身 响应式 ---------- */
 @media (max-width: 800px) {

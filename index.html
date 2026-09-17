@@ -112,22 +112,19 @@
               <div class="msg msg-bot">
                 <span>你好！我是渠梁的数字分身，可以聊聊关于他的事情：学习方向、兴趣，或是任何你好奇的问题。</span>
               </div>
-              <div class="msg msg-user">
-                <span>你在学什么？</span>
-              </div>
-              <div class="msg msg-bot">
-                <span>我在天津大学香港理工大学深圳未来技术学院学计算机科学与技术，喜欢创新与技术探索。</span>
-              </div>
-              <div class="msg msg-bot">
-                <span>这只是一个 Demo 演示界面，后续会接入真正的大模型能力。</span>
-              </div>
+            </div>
+
+            <div class="quick-questions">
+              <button type="button" class="quick-chip" data-quick="你在学什么？">你在学什么？</button>
+              <button type="button" class="quick-chip" data-quick="你的兴趣方向是什么？">兴趣方向</button>
+              <button type="button" class="quick-chip" data-quick="怎么联系你？">怎么联系你？</button>
             </div>
 
             <div class="chat-input">
-              <input id="avatarChatInput" type="text" placeholder="输入你的问题……（Demo）" aria-label="给数字分身留言" />
+              <input id="avatarChatInput" type="text" placeholder="输入你的问题……" aria-label="给数字分身留言" />
               <button id="avatarChatSend" class="btn btn-primary" type="button">发送</button>
             </div>
-            <p class="chat-hint">仅为演示界面 · 尚未接入对话功能</p>
+            <p class="chat-hint">AI 数字分身 · 未配置密钥时自动使用演示回复</p>
           </div>
         </div>
       </div>
