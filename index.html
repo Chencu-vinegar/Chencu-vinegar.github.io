@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>陈渠梁 · 个人主页</title>
-  <meta name="description" content="陈渠梁的个人主页 —— 天津大学香港理工大学深圳未来技术学院 2026 级学生，主修计算机科学与技术。" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <meta name="description" content="陈渠梁的个人主页 —— 天津大学香港理工大学深圳未来技术学院 2026 级学生，主修计算机科学与技术。站内可体验数字分身对话，也欢迎提交意见反馈。" />
   <link rel="stylesheet" href="styles/main.css" />
   <script src="scripts/main.js" defer></script>
 </head>
@@ -14,8 +13,8 @@
   <header class="site-header" id="top">
     <div class="container header-inner">
       <a class="brand" href="#top" aria-label="返回顶部">
-        <span class="brand-mark">P</span>
-        <span class="brand-name">个人主页</span>
+        <span class="brand-mark">陈</span>
+        <span class="brand-name">陈渠梁</span>
       </a>
       <nav class="site-nav" id="siteNav" aria-label="页面导航">
         <a href="#about">关于</a>
@@ -24,44 +23,88 @@
         <a href="#contact">联系</a>
         <a href="#feedback">反馈</a>
       </nav>
-      <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色/浅色主题">◐</button>
-      <button class="menu-toggle" id="menuToggle" type="button" aria-label="打开菜单" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+      <div class="header-tools">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色/浅色主题">◐</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="打开菜单" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- Hero 首屏 -->
+    <!-- ① 首屏：左侧大色块 + 右侧速览卡片 -->
     <section class="hero" id="hero">
-      <div class="container hero-inner">
-        <div class="avatar-wrap">
-          <!-- 头像：把照片放到 assets/images/avatar.jpg 即可自动显示（建议正方形，400×400 以上）
-               若文件不存在，自动回退为「陈」字头像，不会出现破图 -->
-          <img
-            class="avatar"
-            src="assets/images/avatar.jpg"
-            alt="陈渠梁的头像"
-            width="140"
-            height="140"
-            onerror="this.style.display='none';this.closest('.avatar-wrap').classList.add('is-fallback');"
-          />
-          <span class="avatar-fallback-text" aria-hidden="true">陈</span>
-        </div>
-        <h1 class="hero-title">你好，我是<span class="accent">陈渠梁</span></h1>
-        <p class="hero-slogan">天津大学香港理工大学深圳未来技术学院 · 2026 级学生 · 主修计算机科学与技术</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#about">了解我</a>
-          <a class="btn btn-ghost" href="#contact">联系我</a>
+      <div class="container">
+        <div class="hero-grid">
+          <!-- 大色块：超大字号 + 胶囊标签 + 低对比关键词 -->
+          <div class="hero-block">
+            <p class="hero-eyebrow">个人主页 / 2026</p>
+            <h1 class="hero-title">你好，我是<span class="hero-name">陈渠梁</span></h1>
+            <p class="hero-sub">天津大学香港理工大学深圳未来技术学院 · 2026 级学生 · 主修计算机科学与技术</p>
+
+            <div class="hero-chips">
+              <span class="chip">计算机科学与技术</span>
+              <span class="chip">创新实践</span>
+              <span class="chip">技术探索</span>
+              <span class="chip">人工智能</span>
+            </div>
+
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#about">了解我</a>
+              <a class="btn btn-ghost" href="#contact">联系我</a>
+            </div>
+
+            <p class="hero-keywords" aria-hidden="true">Code · Build · Explore</p>
+          </div>
+
+          <!-- 速览卡片：头像 + 技能关键词标签 + 基本信息 -->
+          <aside class="hero-side" aria-label="速览">
+            <div class="avatar-wrap">
+              <!-- 头像：把照片放到 assets/images/avatar.jpg 即可自动显示（建议正方形，400×400 以上）
+                   若文件不存在，自动回退为「陈」字头像，不会出现破图 -->
+              <img
+                class="avatar"
+                src="assets/images/avatar.jpg"
+                alt="陈渠梁的头像"
+                width="140"
+                height="140"
+                onerror="this.style.display='none';this.closest('.avatar-wrap').classList.add('is-fallback');"
+              />
+              <span class="avatar-fallback-text" aria-hidden="true">陈</span>
+            </div>
+
+            <h2 class="side-title">技能关键词</h2>
+            <div class="skill-cloud">
+              <span class="tag">计算机科学与技术</span>
+              <span class="tag">人工智能</span>
+              <span class="tag">创新实践</span>
+              <span class="tag">技术探索</span>
+              <span class="tag">编程基础</span>
+              <span class="tag">团队协作</span>
+            </div>
+
+            <dl class="side-facts">
+              <div class="fact"><dt>院校</dt><dd>TJU × HKPU</dd></div>
+              <div class="fact"><dt>年级</dt><dd>2026 级</dd></div>
+              <div class="fact"><dt>专业</dt><dd>计算机科学与技术</dd></div>
+            </dl>
+          </aside>
         </div>
       </div>
+
+      <a class="scroll-cue" href="#about" aria-label="向下浏览"><span class="chev"></span></a>
     </section>
 
-    <!-- 关于我 -->
+    <!-- ② 关于我 -->
     <section class="section" id="about">
       <div class="container">
-        <h2 class="section-title">关于我</h2>
-        <p class="section-intro">一个相信「代码能改变世界」的年轻人，正在计算机科学的路上探索不止。</p>
+        <div class="section-head">
+          <h2 class="section-title">关于我</h2>
+          <span class="section-index">01</span>
+        </div>
+
+        <p class="about-lede">一个相信「代码能改变世界」的年轻人，正在计算机科学的路上探索不止。</p>
 
         <div class="about-grid">
           <div class="about-text">
@@ -85,10 +128,13 @@
       </div>
     </section>
 
-    <!-- 经历时间线 -->
+    <!-- ③ 经历 -->
     <section class="section section-alt" id="experience">
       <div class="container">
-        <h2 class="section-title">经历</h2>
+        <div class="section-head">
+          <h2 class="section-title">经历</h2>
+          <span class="section-index">02</span>
+        </div>
         <p class="section-intro">正在逐步成长，留下每一个值得记录的脚印。</p>
 
         <ol class="timeline">
@@ -101,10 +147,13 @@
       </div>
     </section>
 
-    <!-- 我的数字分身（可接入 DeepSeek 大模型；未配置密钥时自动使用演示回复） -->
+    <!-- ④ 我的数字分身（可接入 DeepSeek 大模型；未配置密钥时自动使用演示回复） -->
     <section class="section" id="avatar">
       <div class="container">
-        <h2 class="section-title">我的数字分身</h2>
+        <div class="section-head">
+          <h2 class="section-title">我的数字分身</h2>
+          <span class="section-index">03</span>
+        </div>
         <p class="section-intro">一个会「认识我」的 AI 分身。可以聊聊我的学习方向、兴趣，或是任何你好奇的问题。</p>
 
         <div class="avatar-app">
@@ -148,14 +197,17 @@
       </div>
     </section>
 
-    <!-- 联系我 -->
+    <!-- ⑤ 联系我 -->
     <section class="section section-alt" id="contact">
       <div class="container">
-        <h2 class="section-title">联系我</h2>
+        <div class="section-head">
+          <h2 class="section-title">联系我</h2>
+          <span class="section-index">04</span>
+        </div>
         <p class="section-intro">无论合作、交流还是答疑，都很乐意听到你的声音。</p>
 
         <div class="contact-row">
-          <a class="contact-item" href="mailto:chenquliang@tju.edu.cn" >
+          <a class="contact-item" href="mailto:chenquliang@tju.edu.cn">
             <span class="contact-label">邮箱</span>
             <span class="contact-value">chenquliang@tju.edu.cn</span>
           </a>
@@ -185,10 +237,13 @@
       </div>
     </section>
 
-    <!-- 意见反馈 -->
+    <!-- ⑥ 意见反馈 -->
     <section class="section" id="feedback">
       <div class="container">
-        <h2 class="section-title">意见反馈</h2>
+        <div class="section-head">
+          <h2 class="section-title">意见反馈</h2>
+          <span class="section-index">05</span>
+        </div>
         <p class="section-intro">对主页、内容或任何方面有想法，都欢迎告诉我。每条反馈我都会看到。</p>
 
         <form class="feedback-form" id="feedbackForm" novalidate>
@@ -236,9 +291,12 @@
 
   <!-- 页脚 -->
   <footer class="site-footer">
-    <div class="container footer-inner">
-      <span class="footer-copy">© 2026 陈渠梁 · 保留所有权利</span>
-      <a class="footer-top" href="#top">返回顶部 ↑</a>
+    <div class="container">
+      <p class="footer-name" aria-hidden="true">陈渠梁</p>
+      <div class="footer-inner">
+        <span class="footer-copy">© 2026 陈渠梁 · 保留所有权利</span>
+        <a class="footer-top" href="#top">返回顶部 ↑</a>
+      </div>
     </div>
   </footer>
 </body>
