@@ -108,7 +108,11 @@ py server.py
 
 1. 复制 `.env.example` 为 `.env`
 2. 填入 `DEEPSEEK_API_KEY`（在 https://platform.deepseek.com/ 获取）
-3. 运行 `py server.py`，访问 `http://localhost:8000` → 状态应显示「● AI 在线」
+3. 运行 `py server.py`，访问 `http://localhost:8000` → 状态应显示「● AI 在线」，随便问一句应得到真实回答
+
+> ⚠️ **密钥要确认有效**：若状态是「● 演示模式」或回答永远是固定的演示文案，多半是密钥无效/已撤销。
+> 项目里 2026-09-24 时用的那把密钥就是失效状态（DeepSeek 返回 `401 Authentication Fails`），
+> 请到 https://platform.deepseek.com/ 重新生成一把，本地 `.env` 与 Supabase Secrets 用同一把即可。
 
 **线上启用真实 AI（一次性部署，约 2 分钟）**：
 
