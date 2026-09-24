@@ -125,7 +125,8 @@ powershell -ExecutionPolicy Bypass -File tools\deploy-chat-function.ps1
 - 也可以完全在网页上做：Supabase 控制台 → Edge Functions → 新建名为 `chat` 的函数 → 粘贴 `supabase/functions/chat/index.ts` → 关闭 JWT 强校验 → 在 Secrets 里加 `DEEPSEEK_API_KEY`。完整步骤见 `docs/05-技术方案.md` §4.2。
 - 想退回演示模式：把 `scripts/config.js` 的 `chatUrl` 置为空字符串并 push。
 
-> 分身的人格与知识来源定义在 `server.py` 与 `supabase/functions/chat/index.ts` 顶部的 `SYSTEM_PROMPT`，**改一处要同步另一处**。
+> 分身的人格与知识来源定义在 `server.py` 与 `supabase/functions/chat/index.ts` 顶部的 `SYSTEM_PROMPT`，**改一处要同步另一处**（校验：`py .deepworks/tmp/compare_prompts.py`）。
+> 人格为「陪聊 + 介绍」双模式：可以闲聊、讲笑话，但介绍本人时只依据公开信息、绝不编造。
 
 ## 意见反馈（Supabase）
 
