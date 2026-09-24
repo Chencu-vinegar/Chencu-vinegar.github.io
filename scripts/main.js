@@ -246,7 +246,34 @@
     });
   }
 
-  /* ---------- 我的数字分身：优先接入后端 AI，失败自动回退本地演示 ---------- */
+  /* ---------- 我的数字分身：线上 Edge Function → 本地后端 → 演示回复 ---------- */
+  // 线上（GitHub Pages）调用 Supabase Edge Function：大模型密钥只存在 Supabase Secrets，
+  // 浏览器拿不到任何密钥。chatUrl 留空时才回退同源后端 /api/chat（本地开发）。
+  var CHAT_ENDPOINT = SITE_CONFIG.chatUrl ? String(SITE_CONFIG.chatUrl).replace(/\/+$/, "") : "";
+
+  // 本地开发（file:// 或 localhost）时优先用自带后端 /api/chat（.env 里的密钥）；
+  // 线上（GitHub Pages）优先用 Edge Function。两者取先成功者，都失败再回退演示回复。
+  var isLocalHost = false;
+  try {
+    var hostName = String(location.hostname || "");
+    isLocalHost = location.protocol === "file:" ||
+      hostName === "localhost" || hostName === "127.0.0.1" || hostName === "[::1]";
+  } catch (e) { isLocalHost = false; }
+
+  var BACKEND_TARGET = { url: "/api/chat", headers: { "Content-Type": "application/json" } };
+
+  function chatTargets() {
+    var list = [];
+    if (isLocalHost) {
+      list.push(BACKEND_TARGET);
+      if (CHAT_ENDPOINT) list.push({ url: CHAT_ENDPOINT, headers: chatHeaders() });
+    } else {
+      if (CHAT_ENDPOINT) list.push({ url: CHAT_ENDPOINT, headers: chatHeaders() });
+      list.push(BACKEND_TARGET);
+    }
+    return list;
+  }
+
   var chatInput = document.getElementById("avatarChatInput");
   var chatSend = document.getElementById("avatarChatSend");
   var chatLog = document.querySelector(".chat-log");
@@ -312,11 +339,23 @@
     if (chatInput) chatInput.disabled = busy;
   }
 
-  // 调用后端 /api/chat；任何失败都会抛错，由调用方回退到 localReply
-  function askBackend() {
-    return fetch("/api/chat", {
+  // 调用 Edge Function 时可带上 publishable key：它本身就是公开值，
+  // 服务端若开了密钥校验可以据此挡掉裸扫描请求（不带也不会泄露任何机密）。
+  function chatHeaders() {
+    var headers = { "Content-Type": "application/json" };
+    var key = SITE_CONFIG.supabaseKey ? String(SITE_CONFIG.supabaseKey) : "";
+    if (key) {
+      headers["apikey"] = key;
+      headers["Authorization"] = "Bearer " + key;
+    }
+    return headers;
+  }
+
+  // 向对话接口提问；任何失败都会抛错，由调用方回退到 localReply
+  function postChat(url, headers) {
+    return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify({ messages: chatHistory })
     }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -326,6 +365,65 @@
         throw new Error("响应格式异常");
       }
       return data.reply;
+    });
+  }
+
+  // 依次尝试各目标，任一成功即返回；全部失败则抛错，由调用方回退 localReply
+  function askAvatar() {
+    var targets = chatTargets();
+    var chain = null;
+    for (var i = 0; i < targets.length; i++) {
+      chain = (function (target) {
+        var attempt = function () { return postChat(target.url, target.headers); };
+        return chain ? chain.catch(attempt) : attempt();
+      })(targets[i]);
+    }
+    return chain || Promise.reject(new Error("无可用对话接口"));
+  }
+
+  // 本地后端 /api/health：返回 {aiEnabled, model, feedbackEnabled}
+  function probeLocalBackend() {
+    return fetch("/api/health")
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        avatarSetStatus(!!(data && data.aiEnabled));
+        return true;
+      });
+  }
+
+  // Edge Function 的 GET 探测：返回 {aiEnabled, model}
+  function probeEdgeFunction() {
+    return fetch(CHAT_ENDPOINT, { method: "GET", headers: chatHeaders() })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        avatarSetStatus(!!(data && data.aiEnabled));
+        return true;
+      });
+  }
+
+  // 刷新「● AI 在线 / ● 演示模式」：按与对话相同的优先级探测，全失败即显示演示模式
+  function refreshAvatarStatus() {
+    var order = [];
+    if (isLocalHost) {
+      order.push(probeLocalBackend);
+      if (CHAT_ENDPOINT) order.push(probeEdgeFunction);
+    } else {
+      if (CHAT_ENDPOINT) order.push(probeEdgeFunction);
+      order.push(probeLocalBackend);
+    }
+    var chain = null;
+    for (var i = 0; i < order.length; i++) {
+      chain = chain ? chain.catch(order[i]) : order[i]();
+    }
+    return (chain || Promise.reject(new Error("无可用接口"))).catch(function () {
+      avatarSetStatus(false);
+      return false;
     });
   }
 
@@ -340,7 +438,7 @@
     setBusy(true);
     var typing = addTypingIndicator();
 
-    askBackend()
+    askAvatar()
       .then(function (reply) {
         avatarSetStatus(true);
         return reply;
@@ -369,11 +467,8 @@
       });
     });
 
-    // 探测后端是否已启用 AI，用于状态显示
-    fetch("/api/health")
-      .then(function (res) { return res.ok ? res.json() : null; })
-      .then(function (data) { if (data) avatarSetStatus(!!data.aiEnabled); })
-      .catch(function () { /* 直接打开文件或未启动服务时忽略 */ });
+    // 探测分身是否已接入真实 AI，用于状态显示（「● AI 在线」/「● 演示模式」）
+    refreshAvatarStatus();
   }
 
   // 微信：点击复制（weixin:// 协议浏览器普遍不识别，点了没反应）

@@ -1,0 +1,22 @@
+# ============================================================
+#  Supabase CLI 配置（本项目只用到 Edge Functions）
+# ------------------------------------------------------------
+#  用途：让 `supabase functions deploy chat` 一条命令即可发布数字分身函数。
+#
+#  发布（二选一，详见 docs/05-技术方案.md §4.2）：
+#    A. 命令行（本文件生效）：tools/deploy-chat-function.ps1
+#       或：supabase functions deploy chat --project-ref <项目ref>
+#    B. 网页（无需本地安装）：Dashboard → Edge Functions → chat → 粘贴
+#       supabase/functions/chat/index.ts 的内容
+#
+#  ⚠️ 这里**只放非敏感配置**。大模型密钥一律用 Secrets 管理，绝不写进本文件：
+#      supabase secrets set DEEPSEEK_API_KEY=<你的密钥> --project-ref <项目ref>
+#     （或在 Dashboard → Project Settings → Edge Functions → Secrets 添加）
+# ============================================================
+
+project_id = "fudznxnxtoiaxcxcvfuq"
+
+[functions.chat]
+# 前端用的是可公开的 publishable key（非 JWT 格式），因此关闭网关的 JWT 强校验；
+# 函数内部可选用 SITE_ANON_KEY 再校验一次请求头（见 index.ts 的 keyAllowed）。
+verify_jwt = false

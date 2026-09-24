@@ -34,6 +34,12 @@
 ├── .env.example                  # 环境变量示例（复制为 .env 并填密钥）
 ├── sql/
 │   └── feedback.sql              # 意见反馈建表 SQL（在 Supabase SQL Editor 执行一次）
+├── supabase/                     # 线上后端（Edge Functions，随仓库发布；不含密钥）
+│   ├── config.toml               # CLI 配置：project_id + 关闭 JWT 强校验
+│   └── functions/chat/index.ts   # 数字分身函数：Supabase Secrets → DeepSeek → {reply}
+├── tools/
+│   ├── deploy-chat-function.ps1  # 一键发布分身函数（自动下载 CLI + 写 Secrets + deploy）
+│   └── bin/                      # CLI 二进制（已忽略，不入库）
 ├── docs/                         # 项目文档（需求 / 结构 / 设计 / 内容 / 技术 / 计划）
 │   ├── 00-项目交接与进度.md
 │   ├── 01-需求说明.md
@@ -52,7 +58,9 @@
 └── assets/images/                # 图片素材（avatar.jpg 已接入）
 ```
 
-> **不纳入仓库**（已在 `.gitignore`）：`.env`（密钥）、`.opencode/` 与 `opencode.jsonc`（AI 开发工具自身配置，与主页无关）、`.deepworks/`（会话临时文件）、`uploads/`（临时素材）。
+> **不纳入仓库**（已在 `.gitignore`）：`.env`（密钥）、`.opencode/` 与 `opencode.jsonc`（AI 开发工具自身配置，与主页无关）、`.deepworks/`（会话临时文件）、`uploads/`（临时素材）、`supabase/.temp/` 与 `tools/bin/`（CLI 缓存与二进制）。
+>
+> `supabase/` 与 `tools/` 里的源码**要入库**（线上后端源码），密钥不在其中 —— 它们只存在于 Supabase Secrets。
 
 ## 部署（GitHub Pages）
 
@@ -65,7 +73,7 @@
 | 在线地址 | https://chencu-vinegar.github.io/ |
 | 更新方式 | `git push` 后自动重新发布（约 1–2 分钟） |
 
-静态托管下的功能差异：**意见反馈照常可用**（浏览器直连 Supabase）；**数字分身处于演示模式**（DeepSeek 密钥只在服务端，线上无后端）。详见 `docs/05-技术方案.md` §4.1。
+静态托管下的功能差异：**意见反馈照常可用**（浏览器直连 Supabase）；**数字分身靠 Supabase Edge Function 承载密钥**（部署一次即可，见下方「数字分身」与 `docs/05-技术方案.md` §4.2）。**函数未部署时不会报错**，会自动回退演示回复。详见 `docs/05-技术方案.md` §4.1。
 
 ## 使用方式
 
@@ -77,7 +85,7 @@
 ## 本地预览
 
 ```powershell
-# 方式一：直接用浏览器打开 index.html（数字分身走本地演示回复，反馈直连 Supabase）
+# 方式一：直接用浏览器打开 index.html（反馈直连 Supabase；分身无本地后端时会自动试线上函数）
 start index.html
 
 # 方式二（推荐）：启动带数字分身后端的本地服务
@@ -87,17 +95,33 @@ py server.py
 
 ## 数字分身（AI 接入）
 
-页面中的「我的数字分身」支持接入 **DeepSeek** 大模型：
+页面中的「我的数字分身」支持接入 **DeepSeek** 大模型。**密钥永远只在服务端**，前端 `scripts/config.js` 里只有接口地址：
 
-- **未配置密钥时（含线上 GitHub Pages）**：自动使用本地关键词回复（演示模式），页面照常可用。
-- **启用真实 AI（仅本地）**：
-  1. 复制 `.env.example` 为 `.env`
-  2. 在其中填入 `DEEPSEEK_API_KEY`（在 https://platform.deepseek.com/ 获取）
-  3. 运行 `py server.py`，访问 `http://localhost:8000`
+| 运行环境 | 分身走哪条路 | 密钥存放位置 |
+| --- | --- | --- |
+| 本地 `http://localhost:8000` | 同源 `POST /api/chat`（`server.py`） | 本机 `.env`（已忽略，不入库） |
+| 线上 GitHub Pages | `POST <chatUrl>`（**Supabase Edge Function**） | **Supabase Secrets** |
 
-> 密钥只保存在服务端 `.env`（已被 `.gitignore` 忽略），前端只调用同源的 `/api/chat`，不会暴露密钥。
-> 静态托管没有服务端进程，因此**线上分身始终是演示模式**；若要让线上也接真 AI，需要一个 Serverless 函数来承载密钥。
-> 分身的人格与知识来源定义在 `server.py` 顶部的 `SYSTEM_PROMPT`，可按需修改。
+任何一条路失败都会自动再试另一条，全部失败才回退**本地关键词演示回复**（页面绝不报错，状态显示「● 演示模式」）。
+
+**本地启用真实 AI**：
+
+1. 复制 `.env.example` 为 `.env`
+2. 填入 `DEEPSEEK_API_KEY`（在 https://platform.deepseek.com/ 获取）
+3. 运行 `py server.py`，访问 `http://localhost:8000` → 状态应显示「● AI 在线」
+
+**线上启用真实 AI（一次性部署，约 2 分钟）**：
+
+```powershell
+# 生成访问令牌：https://supabase.com/dashboard/account/tokens
+$env:SUPABASE_ACCESS_TOKEN = "sbp_xxxxxxxx"
+powershell -ExecutionPolicy Bypass -File tools\deploy-chat-function.ps1
+```
+
+- 也可以完全在网页上做：Supabase 控制台 → Edge Functions → 新建名为 `chat` 的函数 → 粘贴 `supabase/functions/chat/index.ts` → 关闭 JWT 强校验 → 在 Secrets 里加 `DEEPSEEK_API_KEY`。完整步骤见 `docs/05-技术方案.md` §4.2。
+- 想退回演示模式：把 `scripts/config.js` 的 `chatUrl` 置为空字符串并 push。
+
+> 分身的人格与知识来源定义在 `server.py` 与 `supabase/functions/chat/index.ts` 顶部的 `SYSTEM_PROMPT`，**改一处要同步另一处**。
 
 ## 意见反馈（Supabase）
 
@@ -143,4 +167,6 @@ window.SITE_CONFIG = {
 - [x] 隐私调整：微信卡片标注「非本人手机号」，手机号卡片改为「详谈时提供」
 - [x] 反馈表单改造：静态托管下浏览器直连 Supabase（线上可正常收集）
 - [x] 部署上线 GitHub Pages → https://chencu-vinegar.github.io/
+- [x] 数字分身支持线上真实 AI：改用 Supabase Edge Function 承载密钥（前端三层降级 + 一键发布脚本，本地链路已实测）
+- [ ] 在 Supabase 部署 `chat` 函数并配置 `DEEPSEEK_API_KEY` Secret（见 `docs/05-技术方案.md` §4.2）
 - [ ] 其余素材补齐（更多经历 / 作品）

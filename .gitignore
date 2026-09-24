@@ -30,6 +30,12 @@ uploads/
 __pycache__/
 *.pyc
 
+# ---------- Supabase CLI 本地状态与工具 ----------
+# supabase/functions/** 必须入库（函数源码要随仓库发布），只忽略 CLI 的本地缓存与下载的二进制
+supabase/.temp/
+supabase/.branches/
+tools/bin/
+
 # ---------- 系统与编辑器 ----------
 .DS_Store
 Thumbs.db
