@@ -11,7 +11,7 @@
      返回: { "reply": "……" }
 
    健康探测（前端用来显示「AI 在线 / 演示模式」）：
-     GET  同上地址  →  { "aiEnabled": true, "model": "deepseek-chat" }
+     GET  同上地址  →  { "aiEnabled": true, "model": "deepseek-flash" }
 
    需要的 Secrets（在 Supabase Dashboard → Project Settings → Edge Functions
    → Secrets 添加，或用 `supabase secrets set`）：
@@ -19,7 +19,8 @@
      SITE_ANON_KEY         可选。填了它，函数会校验请求头 apikey/Authorization
                            必须与之相同，挡掉不带密钥的裸扫描请求。
      DEEPSEEK_API_BASE / DEEPSEEK_MODEL / DEEPSEEK_MAX_TOKENS /
-     DEEPSEEK_TEMPERATURE / DEEPSEEK_TIMEOUT  可选，按需覆盖默认值。
+     DEEPSEEK_TEMPERATURE / DEEPSEEK_TIMEOUT / DEEPSEEK_THINKING  可选，按需覆盖默认值。
+     （模型名以 https://api-docs.deepseek.com 为准，但改模型名**不用改代码**：设 DEEPSEEK_MODEL 即可。）
      ALLOWED_ORIGIN        可选。默认 "*"，可改成 https://你的站点 收紧跨域。
 
    注意：SYSTEM_PROMPT（分身人格）需与 server.py 中的同名常量保持一致，
@@ -28,10 +29,18 @@
 
 // ---------- 上游大模型配置（都可由 Secrets 覆盖，改配置不用改代码） ----------
 const API_BASE = Deno.env.get("DEEPSEEK_API_BASE") ?? "https://api.deepseek.com/chat/completions";
-const MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-chat";
+// 模型名以 DeepSeek 官方文档为准（当前只有 deepseek-flash / deepseek-v4-pro）；
+// 旧的 deepseek-chat 已不在文档列表中，用错名字会直接 502。
+const MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-flash";
 const MAX_TOKENS = Number(Deno.env.get("DEEPSEEK_MAX_TOKENS") ?? "800");
 const TEMPERATURE = Number(Deno.env.get("DEEPSEEK_TEMPERATURE") ?? "0.7");
 const REQUEST_TIMEOUT_MS = Number(Deno.env.get("DEEPSEEK_TIMEOUT") ?? "60") * 1000;
+
+// DeepSeek 默认开启「思考模式」：正式回答前先输出一大段思维链，又慢又按输出 token 计费。
+// 数字分身只要 2-4 句简短回答，因此默认关闭；想打开设 DEEPSEEK_THINKING=enabled，
+// 换成别的 OpenAI 兼容服务（不认识该参数）时设 DEEPSEEK_THINKING=omit 直接不发送。
+const THINKING_ENV = (Deno.env.get("DEEPSEEK_THINKING") ?? "disabled").trim().toLowerCase();
+const THINKING = THINKING_ENV === "enabled" || THINKING_ENV === "disabled" ? THINKING_ENV : "";
 
 // ---------- 入参限制（与 server.py 一致，防止超长输入刷额度） ----------
 const MAX_HISTORY = 20;
@@ -154,13 +163,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json(400, { error: "messages 为空或格式不正确" });
   }
 
-  const upstreamBody = {
+  const upstreamBody: Record<string, unknown> = {
     model: MODEL,
     messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
     temperature: TEMPERATURE,
     max_tokens: MAX_TOKENS,
     stream: false,
   };
+  // temperature 只在非思考模式生效（思考模式下会被忽略）
+  if (THINKING) upstreamBody.thinking = { type: THINKING };
 
   try {
     const upstream = await fetch(API_BASE, {

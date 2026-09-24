@@ -69,10 +69,18 @@ PORT = int(os.environ.get("PORT", "8000"))
 #  数字分身配置（改这里即可，无需动前端）
 # ============================================================
 API_BASE = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/chat/completions")
-MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
+# 模型名以 DeepSeek 官方文档为准（当前只有 deepseek-flash / deepseek-v4-pro）；
+# 旧的 deepseek-chat 已不在文档列表中，用错名字会直接 502。
+MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 MAX_TOKENS = int(os.environ.get("DEEPSEEK_MAX_TOKENS", "800"))
 TEMPERATURE = float(os.environ.get("DEEPSEEK_TEMPERATURE", "0.7"))
 REQUEST_TIMEOUT = int(os.environ.get("DEEPSEEK_TIMEOUT", "60"))
+
+# DeepSeek 默认开启「思考模式」：正式回答前先输出一大段思维链，又慢又按输出 token 计费。
+# 数字分身只要 2-4 句简短回答，因此默认关闭；想打开设 DEEPSEEK_THINKING=enabled，
+# 换成别的 OpenAI 兼容服务（不认识该参数）时设 DEEPSEEK_THINKING=omit 直接不发送。
+_THINKING_ENV = os.environ.get("DEEPSEEK_THINKING", "disabled").strip().lower()
+THINKING = _THINKING_ENV if _THINKING_ENV in ("enabled", "disabled") else ""
 
 # 分身人格设定：只依据陈渠梁的公开信息回答，不编造。
 SYSTEM_PROMPT = """你是「陈渠梁的数字分身」，一个友好、真诚的 AI 助手，代表陈渠梁与访客交流。
@@ -204,6 +212,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "max_tokens": MAX_TOKENS,
             "stream": False,
         }
+        # temperature 只在非思考模式生效（思考模式下会被忽略）
+        if THINKING:
+            payload["thinking"] = {"type": THINKING}
         request = urllib.request.Request(
             API_BASE,
             data=json.dumps(payload).encode("utf-8"),
