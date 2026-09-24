@@ -33,7 +33,8 @@
 ├── server.py                     # 零依赖本地服务：静态托管 + /api/chat（DeepSeek）+ /api/feedback（Supabase）
 ├── .env.example                  # 环境变量示例（复制为 .env 并填密钥）
 ├── sql/
-│   └── feedback.sql              # 意见反馈建表 SQL（在 Supabase SQL Editor 执行一次）
+│   ├── feedback.sql              # 意见反馈建表 SQL（在 Supabase SQL Editor 执行一次）
+│   └── dialog.sql                # 对话记录建表 SQL（同上，后台可查看访客与分身的问答）
 ├── supabase/                     # 线上后端（Edge Functions，随仓库发布；不含密钥）
 │   ├── config.toml               # CLI 配置：project_id + 关闭 JWT 强校验
 │   └── functions/chat/index.ts   # 数字分身函数：Supabase Secrets → DeepSeek → {reply}
@@ -159,6 +160,30 @@ window.SITE_CONFIG = {
 
 > `scripts/config.js` 留空 `supabaseUrl` / `supabaseKey` 时，前端自动回退为调用同源后端。
 
+## 对话记录（Supabase `dialog` 表）
+
+访客与数字分身的**每一轮真实问答**都会自动存进 Supabase 的 `dialog` 表，登录后台就能看到历史对话
+（Supabase 控制台 → Table Editor → `dialog`，或 SQL Editor 里 `select * from dialog order by id desc`）。
+
+- **写在哪一侧**：线上由 `chat` Edge Function 写（密钥在函数运行时，浏览器不参与）；本地由 `server.py` 写。
+- **记什么**：`question` / `answer` / `model` / `latency_ms` / `source` / `created_at`，加上会话与来源信息
+  `session_id`（同一次访问内的多轮对话共用一个随机 id，用于把一轮轮对话串起来）与 `page_url`（页面地址，**已丢弃查询串**）。
+- **不记什么**：不记 IP、不记浏览器指纹、不记联系方式；演示模式（没接上大模型）的回复不记录，只有真实模型回答才入库。
+- **安全**：和 `feedback` 一样开 RLS 且**只放行匿名 INSERT**，浏览器里那把公钥只能写、读不到任何对话内容。
+- **建表**：在 Supabase SQL Editor 执行一次 `sql/dialog.sql`（已在本项目执行）。
+
+```sql
+-- 后台最常用的两条查询
+select id, session_id, question, answer, model, latency_ms, created_at
+  from dialog order by id desc limit 50;
+select session_id, count(*) as turns, min(created_at) as started
+  from dialog group by session_id order by started desc;
+```
+
+> 换 Supabase 项目时要重跑 `sql/feedback.sql` 与 `sql/dialog.sql` 两个脚本；
+> 想换个表名：函数侧设 Secret `DIALOG_TABLE=<表名>`，本地在 `.env` 里设同名变量；
+> **想彻底停掉记录：设 `DIALOG_TABLE=off`**（`none` / `-` / `0` 同义；留空是"用默认表"而不是"关掉"）。
+
 ## 状态
 
 - [x] 需求方向确认（单页滑动 / 极简专业 / 中文 / 纯静态）
@@ -173,5 +198,7 @@ window.SITE_CONFIG = {
 - [x] 反馈表单改造：静态托管下浏览器直连 Supabase（线上可正常收集）
 - [x] 部署上线 GitHub Pages → https://chencu-vinegar.github.io/
 - [x] 数字分身支持线上真实 AI：改用 Supabase Edge Function 承载密钥（前端三层降级 + 一键发布脚本，本地链路已实测）
-- [ ] 在 Supabase 部署 `chat` 函数并配置 `DEEPSEEK_API_KEY` Secret（见 `docs/05-技术方案.md` §4.2）
+- [x] 在 Supabase 部署 `chat` 函数并配置 `DEEPSEEK_API_KEY` Secret（已部署；`GET` 返回 `model: deepseek-flash`，`POST` 返回真实回复）
+- [x] 访客端韧性加固：请求超时、失败自动重试与网络恢复自愈、状态徽标显示失败原因、旧浏览器与无 `fetch` 环境兜底（headless Edge 6 场景自检全通过）
+- [x] 对话记录：新增 `dialog` 表，两端落库 + 后台可查（浏览器 → Edge Function → 数据库全链路已实测）
 - [ ] 其余素材补齐（更多经历 / 作品）

@@ -7,21 +7,34 @@
 
    调用方式（前端 scripts/main.js 已实现）：
      POST https://<项目ref>.supabase.co/functions/v1/chat
-     body: { "messages": [{ "role": "user", "content": "你好" }] }
+     body: {
+       "messages": [{ "role": "user", "content": "你好" }],
+       "sessionId": "浏览器随机串（选填，用于把同一访客的多轮串起来）",
+       "pageUrl":   "提问页面（选填）"
+     }
      返回: { "reply": "……" }
 
    健康探测（前端用来显示「AI 在线 / 演示模式」）：
      GET  同上地址  →  { "aiEnabled": true, "model": "deepseek-flash" }
+
+   对话记录（后台可回看）：
+     每成功回答一轮，就把「访客问的这句话 + 分身的回答」异步写进 public.dialog
+     （建表 SQL 见 sql/dialog.sql）。写入用的是公开密钥 + 只放行 INSERT 的 RLS，
+     **不使用 service_role**；写库失败只在服务端日志留痕，绝不影响访客收到回答，
+     演示回复与大模型报错也不会写进记录。
 
    需要的 Secrets（在 Supabase Dashboard → Project Settings → Edge Functions
    → Secrets 添加，或用 `supabase secrets set`）：
      DEEPSEEK_API_KEY      必填。大模型密钥，仅存在服务端。
      SITE_ANON_KEY         可选。填了它，函数会校验请求头 apikey/Authorization
                            必须与之相同，挡掉不带密钥的裸扫描请求。
+     DIALOG_TABLE          可选。对话记录写往哪张表，默认 dialog；
+                           设为 off（或 none / - / 0）则完全停掉对话记录。
      DEEPSEEK_API_BASE / DEEPSEEK_MODEL / DEEPSEEK_MAX_TOKENS /
      DEEPSEEK_TEMPERATURE / DEEPSEEK_TIMEOUT / DEEPSEEK_THINKING  可选，按需覆盖默认值。
      （模型名以 https://api-docs.deepseek.com 为准，但改模型名**不用改代码**：设 DEEPSEEK_MODEL 即可。）
      ALLOWED_ORIGIN        可选。默认 "*"，可改成 https://你的站点 收紧跨域。
+     SUPABASE_URL / SUPABASE_ANON_KEY 由平台自动注入，无需手动配置（用于写对话记录）。
 
    注意：SYSTEM_PROMPT（分身人格）需与 server.py 中的同名常量保持一致，
         改动时两处同步（见 docs/05-技术方案.md §1.1 与 docs/00 §5）。
@@ -45,6 +58,71 @@ const THINKING = THINKING_ENV === "enabled" || THINKING_ENV === "disabled" ? THI
 // ---------- 入参限制（与 server.py 一致，防止超长输入刷额度） ----------
 const MAX_HISTORY = 20;
 const MAX_CONTENT_LEN = 4000;
+
+// ---------- 对话记录（写入 public.dialog，供后台回看；失败绝不影响访客收到回答） ----------
+const SUPABASE_URL = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+// 只用前端同款「公开密钥」(anon)：RLS 对该表只放行 INSERT，拿它也读不到别人的对话。
+// 按本项目约定，任何时候都不使用 service_role。
+const LOG_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+const LOG_TABLE_RAW = (Deno.env.get("DIALOG_TABLE") ?? "dialog").trim();
+// 想彻底停掉记录：把 DIALOG_TABLE 设为 off（同义值 none / - / 0）
+const LOG_OFF = ["off", "none", "-", "0"].includes(LOG_TABLE_RAW.toLowerCase());
+const LOG_TABLE = LOG_TABLE_RAW && !LOG_OFF ? LOG_TABLE_RAW : "dialog";
+const LOG_ENABLED = Boolean(SUPABASE_URL && LOG_KEY) && !LOG_OFF;
+const LOG_TIMEOUT_MS = 5000;
+// 与 sql/dialog.sql 里的 check 约束对齐：超长先截断，避免整条写不进去
+const QUESTION_MAX = 4000;
+const ANSWER_MAX = 8000;
+const SESSION_MAX = 64;
+const PAGE_URL_MAX = 500;
+
+/** 取一个干净的字符串：非字符串/空白 → null，超长 → 截断。 */
+function txt(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const s = value.trim();
+  return s ? s.slice(0, max) : null;
+}
+
+/**
+ * 把一轮问答写进 dialog 表。调用方不 await，任何失败只在服务端日志留痕，
+ * 访客拿到的回答不受影响（记录功能挂了也照常聊天）。
+ */
+async function recordDialog(row: Record<string, unknown>): Promise<void> {
+  if (!LOG_ENABLED) return;
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/${LOG_TABLE}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": LOG_KEY,
+        "Authorization": `Bearer ${LOG_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify(row),
+      signal: AbortSignal.timeout(LOG_TIMEOUT_MS),
+    });
+    if (!resp.ok) {
+      const detail = (await resp.text().catch(() => "")).slice(0, 200);
+      console.warn(`[chat] 对话记录写入失败 ${resp.status}: ${detail}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[chat] 对话记录写入异常: ${message}`);
+  }
+}
+
+/** 后台写库：能用 EdgeRuntime.waitUntil 就不拖慢访客的回答。 */
+function fireAndForget(task: Promise<void>): void {
+  const rt = (globalThis as {
+    EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void };
+  }).EdgeRuntime;
+  if (rt && typeof rt.waitUntil === "function") {
+    rt.waitUntil(task);
+    return;
+  }
+  // 没有 waitUntil 时也不 await：宁可记录偶发丢失，也不让访客多等
+  task.catch(() => {});
+}
 
 // ---------- 分身人格设定（与 server.py 的 SYSTEM_PROMPT 必须逐字一致） ----------
 // 可陪聊、讲笑话（幽默），但介绍陈渠梁时只依据公开信息、不编造。
@@ -171,7 +249,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json(400, { error: "请求体不是合法 JSON" });
   }
 
-  const payloadObj = (body ?? {}) as { messages?: unknown; message?: unknown };
+  const payloadObj = (body ?? {}) as {
+    messages?: unknown;
+    message?: unknown;
+    sessionId?: unknown;
+    session_id?: unknown;
+    pageUrl?: unknown;
+    page_url?: unknown;
+  };
   let messages = cleanMessages(payloadObj.messages);
   if (!messages.length && typeof payloadObj.message === "string" && payloadObj.message.trim()) {
     messages = [{ role: "user", content: payloadObj.message.slice(0, MAX_CONTENT_LEN) }];
@@ -179,6 +264,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!messages.length) {
     return json(400, { error: "messages 为空或格式不正确" });
   }
+
+  // 记录用的上下文（前端带上，缺失也不影响聊天，只是记录里少两列）
+  const sessionId = txt(payloadObj.sessionId ?? payloadObj.session_id, SESSION_MAX);
+  const pageUrl = txt(payloadObj.pageUrl ?? payloadObj.page_url, PAGE_URL_MAX);
 
   const upstreamBody: Record<string, unknown> = {
     model: MODEL,
@@ -190,6 +279,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // temperature 只在非思考模式生效（思考模式下会被忽略）
   if (THINKING) upstreamBody.thinking = { type: THINKING };
 
+  const startedAt = Date.now();
   try {
     const upstream = await fetch(API_BASE, {
       method: "POST",
@@ -212,7 +302,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (typeof reply !== "string" || !reply.trim()) {
       return json(502, { error: "大模型响应格式异常" });
     }
-    return json(200, { reply: reply.trim() });
+    const answer = reply.trim();
+
+    // 记录这一轮问答（后台「dialog」表可回看）。不 await：访客不等写库，
+    // 这里只有真正拿到模型回答时才记录，演示回复/报错不会污染记录。
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUser) {
+      fireAndForget(recordDialog({
+        session_id: sessionId,
+        page_url: pageUrl,
+        question: lastUser.content.slice(0, QUESTION_MAX),
+        answer: answer.slice(0, ANSWER_MAX),
+        model: MODEL,
+        latency_ms: Date.now() - startedAt,
+        source: "supabase-edge-function",
+      }));
+    }
+
+    return json(200, { reply: answer });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[chat] 调用失败: ${message}`);

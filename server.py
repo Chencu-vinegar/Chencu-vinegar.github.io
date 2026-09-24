@@ -6,6 +6,8 @@
 功能：
   1. 静态托管本项目（index.html / styles / scripts / assets ...）
   2. POST /api/chat     代理转发到 DeepSeek 大模型，返回数字分身回复
+                        （每次成功回答都会把「提问 + 回答」记进 Supabase 的
+                          dialog 表，便于后台回看；写库失败不影响对话）
   3. POST /api/feedback 接收意见反馈并写入 Supabase 数据库
   4. GET  /api/health   返回 AI / 反馈功能是否已启用，供前端显示状态
 
@@ -17,6 +19,9 @@
   1) 复制 .env.example 为 .env，按需填入
        DEEPSEEK_API_KEY                    （数字分身）
        SUPABASE_URL / SUPABASE_KEY         （意见反馈，建表 SQL 见 sql/feedback.sql）
+       DIALOG_TABLE                        （可选，对话记录写入的表，默认 dialog；
+                                            建表 SQL 见 sql/dialog.sql；
+                                            设为 off 则完全停掉对话记录）
   2) 运行：py server.py
   3) 浏览器打开 http://localhost:8000
 
@@ -32,6 +37,7 @@ import os
 import pathlib
 import socketserver
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -135,6 +141,25 @@ SUPABASE_TIMEOUT = int(os.environ.get("SUPABASE_TIMEOUT", "20"))
 # 反馈内容长度上限（与建表约束保持一致）
 FEEDBACK_MAX_LEN = 2000
 
+# ============================================================
+#  对话记录配置（Supabase，表 dialog）
+# ============================================================
+# 与线上 Edge Function 行为一致：每成功回答一轮，就把「访客问的话 + 分身的回答」
+# 写进 dialog 表，方便在后台回看大家都在问什么。用同一个 anon/publishable key
+# （数据库侧只放行 INSERT），写失败只打日志，绝不影响访客收到回答。
+# 建表 SQL：sql/dialog.sql
+DIALOG_TABLE_RAW = os.environ.get("DIALOG_TABLE", "dialog").strip()
+# 想彻底停掉记录：把 DIALOG_TABLE 设为 off（同义值 none / - / 0）
+DIALOG_OFF = DIALOG_TABLE_RAW.lower() in ("off", "none", "-", "0")
+DIALOG_TABLE = DIALOG_TABLE_RAW if DIALOG_TABLE_RAW and not DIALOG_OFF else "dialog"
+if not DIALOG_TABLE.replace("_", "").isalnum():
+    DIALOG_TABLE = "dialog"
+# 与建表约束对齐：超长先截断，避免整条写不进去
+QUESTION_MAX_LEN = 4000
+ANSWER_MAX_LEN = 8000
+SESSION_MAX_LEN = 64
+PAGE_URL_MAX_LEN = 500
+
 # 最多携带的历史消息条数（避免上下文过长）
 MAX_HISTORY = 20
 # 单条消息最大字符数（防止超长输入）
@@ -148,6 +173,56 @@ def get_api_key() -> str:
 def feedback_enabled() -> bool:
     """反馈功能是否已接通（Supabase 配置齐全）。"""
     return bool(SUPABASE_URL and SUPABASE_KEY)
+
+
+def log_enabled() -> bool:
+    """对话记录功能是否已接通（与反馈共用同一份 Supabase 配置，DIALOG_TABLE=off 可关闭）。"""
+    return bool(SUPABASE_URL and SUPABASE_KEY) and not DIALOG_OFF
+
+
+def clean_text(value, max_len: int):
+    """取一个干净的字符串：非字符串/空白 → None，超长 → 截断。"""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value[:max_len] if value else None
+
+
+def record_dialog(question, answer, session_id, page_url, model, latency_ms) -> None:
+    """把一轮问答写进 dialog 表：尽力而为，失败只打日志。"""
+    if not log_enabled():
+        return
+    row = {
+        "session_id": clean_text(session_id, SESSION_MAX_LEN),
+        "page_url": clean_text(page_url, PAGE_URL_MAX_LEN),
+        "question": clean_text(question, QUESTION_MAX_LEN),
+        "answer": clean_text(answer, ANSWER_MAX_LEN),
+        "model": clean_text(model, 64),
+        "latency_ms": int(latency_ms),
+        "source": "local-backend",
+    }
+    if not row["question"] or not row["answer"]:
+        return
+    request = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/{DIALOG_TABLE}",
+        data=json.dumps(row, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=minimal",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=SUPABASE_TIMEOUT) as resp:
+            if resp.status not in (200, 201, 204):
+                print(f"[warn] 对话记录写入异常：HTTP {resp.status}", file=sys.stderr)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "ignore")[:200]
+        print(f"[warn] 对话记录写入失败 {exc.code}: {detail}", file=sys.stderr)
+    except (urllib.error.URLError, OSError) as exc:
+        print(f"[warn] 对话记录写入失败：{exc}", file=sys.stderr)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -243,9 +318,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         )
 
         try:
+            started_at = time.time()
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
             reply = result["choices"][0]["message"]["content"].strip()
+            # 记录这一轮问答（后台 dialog 表可回看；写库失败不影响这次回答）
+            last_user = next((m["content"] for m in reversed(clean) if m["role"] == "user"), "")
+            try:
+                record_dialog(
+                    last_user, reply,
+                    data.get("sessionId") or data.get("session_id"),
+                    data.get("pageUrl") or data.get("page_url"),
+                    MODEL, int((time.time() - started_at) * 1000),
+                )
+            except Exception as exc:  # 记录功能绝不拖垮对话
+                print(f"[warn] 对话记录异常：{exc}", file=sys.stderr)
             return self.send_json(200, {"reply": reply})
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", "ignore")[:500]
