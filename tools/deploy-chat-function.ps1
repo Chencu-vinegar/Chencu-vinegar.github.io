@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  一键发布「数字分身」Edge Function（Windows PowerShell 5.1）
 # ------------------------------------------------------------
 #  它做的事（可重复执行，幂等）：
@@ -116,18 +116,59 @@ try {
   if ($LASTEXITCODE -ne 0) {
     Write-Warn2 "--use-api 发布失败，改用默认方式重试一次"
     & $cli functions deploy $functionName --project-ref $ProjectRef
-    if ($LASTEXITCODE -ne 0) { throw "发布失败，请查看上方 CLI 输出" }
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warn2 "发布失败。常见原因：访问令牌无效或已过期（重新生成：https://supabase.com/dashboard/account/tokens）、"
+      Write-Warn2 "项目 ref 写错、或网络无法访问 api.supabase.com。若提示 JWT 相关，见文末说明。"
+      throw "发布失败，请查看上方 CLI 输出"
+    }
   }
 } finally {
   Pop-Location
 }
 
-# ---------- 5. 验收提示 ----------
+# ---------- 5. 发布后自检（当场确认函数与密钥是否真的可用） ----------
 $url = "https://$ProjectRef.supabase.co/functions/v1/$functionName"
+Write-Step "自检：调用刚发布的函数"
+
+$healthOk = $false
+try {
+  $health = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 30
+  Write-Host ("    健康探测返回：" + ($health | ConvertTo-Json -Compress)) -ForegroundColor Gray
+  if ($health.aiEnabled) {
+    $healthOk = $true
+    Write-Ok "函数健康，且已识别到大模型密钥（状态将显示「● AI 在线」）"
+  } else {
+    Write-Warn2 "函数已部署，但 aiEnabled=false → Secrets 里还没有 DEEPSEEK_API_KEY"
+  }
+} catch {
+  Write-Warn2 "健康探测失败：$($_.Exception.Message)"
+  Write-Host "        404 = 函数没发布成功；401/403 = JWT 强校验没关（见文末提示）" -ForegroundColor Gray
+}
+
+if ($healthOk) {
+  Write-Host "    正在发一轮真实对话（几秒钟）..." -ForegroundColor Gray
+  $payload = @{ messages = @(@{ role = "user"; content = "用一句话介绍你的学习方向" }) } |
+    ConvertTo-Json -Depth 6 -Compress
+  try {
+    $body = [System.Text.Encoding]::UTF8.GetBytes($payload)
+    $reply = Invoke-RestMethod -Uri $url -Method Post -ContentType "application/json; charset=utf-8" -Body $body -TimeoutSec 90
+    if ($reply.reply) {
+      Write-Ok "大模型回复正常（$($reply.reply.Length) 字符）—— 线上数字分身已真正接通"
+    } else {
+      Write-Warn2 ("返回格式异常：" + ($reply | ConvertTo-Json -Compress))
+    }
+  } catch {
+    Write-Warn2 "对话调用失败：$($_.Exception.Message)"
+    Write-Host "        上游 401 = 密钥无效/已撤销（去 https://platform.deepseek.com/ 换新后重跑本脚本）" -ForegroundColor Gray
+    Write-Host "        上游 402 = 账户余额不足；502 = 其他上游错误，可在函数日志里看详情" -ForegroundColor Gray
+  }
+}
+
+# ---------- 6. 收尾提示 ----------
 Write-Step "发布完成"
 Write-Ok "函数地址：$url"
 Write-Host "`n    下一步：" -ForegroundColor Gray
-Write-Host "      1) 把上面的地址填进 scripts/config.js 的 chatUrl 字段" -ForegroundColor Gray
+Write-Host "      1) scripts/config.js 的 chatUrl 应已是这个地址（核对一下即可）" -ForegroundColor Gray
 Write-Host "      2) 本地自检：py .deepworks/tmp/check_deploy.py https://chencu-vinegar.github.io/" -ForegroundColor Gray
-Write-Host "      3) git add -A; git commit -m 'feat: 线上数字分身接入真实大模型'; git push" -ForegroundColor Gray
+Write-Host "      3) 只改了函数（前端没动）时无需 push；改了前端再 git add -A; git commit; git push" -ForegroundColor Gray
 Write-Host "`n    若首次发布报 JWT 相关错误：Dashboard → Edge Functions → chat → 关闭 Enforce JWT Verification" -ForegroundColor Gray
